@@ -5,6 +5,25 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 
+def TransformInv(T):
+  """
+  Calculates the inverse of the input homogeneous transformation.
+  
+  This method is more efficient than using C{numpy.linalg.inv}, given 
+  the special properties of the homogeneous transformations.
+  
+  @type T: array, shape (4,4)
+  @param T: The input homogeneous transformation
+  @rtype: array, shape (4,4)
+  @return: The inverse of the input homogeneous transformation
+  """
+  R = T[:3,:3].T
+  p = T[:3,3]
+  T_inv = np.identity(4)
+  T_inv[:3,:3] = R
+  T_inv[:3,3] = np.dot(-R, p)
+  return T_inv
+
 def TranValidate(T):
   """
   Validate T
@@ -424,7 +443,7 @@ def Propagating(T1, sigma1, T2, sigma2, method = 2):
   return T, sigma
 
 
-def Fusing(Tlist, sigmalist, N = 0):
+def Fusing(Tlist, sigmalist, N = 0, maxiterations=30, retiter=False):
   """
   Find the total uncertainty in a compound spatial relation (Compounding two uncertain transformations)
   @param Tlist:     a list of 4x4 transformations
@@ -439,7 +458,7 @@ def Fusing(Tlist, sigmalist, N = 0):
   
   T = Tlist[0]
   Vprv = 0
-  for i in range(30): # Gauss-Newton iterations
+  for i in range(maxiterations): # Gauss-Newton iterations
     LHS = np.zeros(6)
     RHS = np.zeros(6)
     for k in range(kmax):
@@ -451,23 +470,23 @@ def Fusing(Tlist, sigmalist, N = 0):
       invJtS = np.dot(invJ.T, np.linalg.inv(sigmalist[k]))
       LHS = LHS + np.dot(invJtS,invJ)
       RHS = RHS + np.dot(invJtS, xik)
-    
     xi = -np.linalg.solve(LHS,RHS)
     print "xi", xi
     T = np.dot(VecToTran(xi),T)
     print "T", T
     sigma = np.linalg.inv(LHS)
-    
     # How low did the objective function get?
-    V = 0
+    V = 0.
     for k in range(kmax):
       xik = TranToVec(np.dot(T,np.linalg.inv(Tlist[k])))
-      V = V + np.dot(np.dot(xik.T,np.linalg.inv(sigmalist[k])),xik)/2
-
+      V = V + np.dot(np.dot(xik.T,np.linalg.inv(sigmalist[k])),xik) / 2.
     if abs(V - Vprv) < 1e-10:
-      return T, sigma 
+      break 
     Vprv = V
-  return T, sigma
+  if retiter:
+    return T, sigma, i+1
+  else:
+    return T, sigma
  
      
 def Visualize(Tlist,sigmalist, nsamples = 100):
