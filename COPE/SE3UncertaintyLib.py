@@ -152,7 +152,7 @@ def RotToVec(C):
     eigval, eigvect = np.linalg.eig(C)
     for (i,val) in enumerate(eigval):
       if abs((val-1)) <= 1e-10:
-        return pi*np.real(eigvect[:,i])
+        return np.pi*np.real(eigvect[:,i])
 
 
 def VecToRot(phi):
