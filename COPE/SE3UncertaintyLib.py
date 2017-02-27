@@ -135,7 +135,7 @@ def TranToVec(T):
   return np.hstack([rho,phi])
 
 
-def RotToVec(C):
+def RotToVec_old(C):
   """
   Compute the matrix log of the rotation matrix C
   @param C:      3x3
@@ -154,6 +154,68 @@ def RotToVec(C):
       if abs((val-1)) <= 1e-10:
         return np.pi*np.real(eigvect[:,i])
 
+def RotToVec(C):
+  """
+  Compute the matrix log of the rotation matrix C
+  @param C:      3x3
+  @param return: Return a 3x1 vector (axis*angle) computed from C
+  """
+  # RotValidate(C)
+  epsilon = 0.01
+  epsilon2 = 0.1
+  if ((abs(C[0,1]-C[1,0])<epsilon) and (abs(C[0,2]-C[2,0])<epsilon) and (abs(C[1,2]-C[2,1])<epsilon)):
+    # singularity found
+    # first check for identity matrix which must have +1 for all terms
+		# in leading diagonaland zero in other terms
+    if ((abs(C[0,1]+C[1,0]) < epsilon2) and (abs(C[0,2]+C[2,0]) < epsilon2) and (abs(C[1,2]+C[2,1]) < epsilon2) and (abs(C[0,0]+C[1,1]+C[2,2]-3) < epsilon2)): # this singularity is identity matrix so angle = 0
+      return np.zeros(3) #zero angle, arbitrary axis 
+    # otherwise this singularity is angle = 180
+    angle = np.pi
+    xx = (C[0,0]+1)/2.
+    yy = (C[1,1]+1)/2.
+    zz = (C[2,2]+1)/2.
+    xy = (C[0,1]+C[1,0])/4.
+    xz = (C[0,2]+C[2,0])/4.
+    yz = (C[1,2]+C[2,1])/4.
+    if ((xx > yy) and (xx > zz)): # C[0][0] is the largest diagonal term
+      if (xx< epsilon):
+        x = 0
+        y = 0.7071
+        z = 0.7071
+      else:
+        x = np.sqrt(xx)
+        y = xy/x
+        z = xz/x
+    elif (yy > zz): # C[1][1] is the largest diagonal term
+      if (yy< epsilon):
+        x = 0.7071
+        y = 0
+        z = 0.7071
+      else:
+        y = np.sqrt(yy)
+        x = xy/y
+        z = yz/y
+    else: # C[2][2] is the largest diagonal term so base result on this
+      if (zz< epsilon):
+        x = 0.7071
+        y = 0.7071
+        z = 0
+      else:
+        z = np.sqrt(zz)
+        x = xz/z
+        y = yz/z
+    return angle*np.array((x,y,z))
+  s = np.sqrt((C[2,1] - C[1,2])*(C[2,1] - C[1,2])+(C[0,2] - C[2,0])*(C[0,2] - C[2,0])+(C[1,0] - C[0,1])*(C[1,0] - C[0,1])) # used to normalise
+  if (abs(s) < 0.001):
+    # prevent divide by zero, should not happen if matrix is orthogonal and should be
+    # caught by singularity test above, but I've left it in just in case
+    s=1 
+        
+  angle = np.arccos(( C[0,0] + C[1,1] + C[2,2] - 1)/2.)
+  x = (C[2,1] - C[1,2])/s
+  y = (C[0,2] - C[2,0])/s
+  z = (C[1,0] - C[0,1])/s
+  return angle*np.array((x,y,z))
 
 def VecToRot(phi):
   """
