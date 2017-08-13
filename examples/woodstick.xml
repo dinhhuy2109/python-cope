@@ -1,0 +1,9 @@
+<Kinbody name="woodstick">
+  <Body type="static">
+    <Geom type="box">
+<extents> 0.01 0.025 0.17</extents>
+<Translation>0.01 0.025 -0.17</Translation>
+<diffusecolor>1.00 0.2745 0.1608</diffusecolor>
+    </Geom>
+  </Body>
+</Kinbody>
