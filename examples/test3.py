@@ -13,7 +13,7 @@ import transformation as tr
 
 # Measurements
 o_p = 3e-3
-o_n = 25/180.0*np.pi
+o_n = 10./180.0*np.pi
 
 p1 = [-0.0255,0.007,0.11] # side near y
 n1 = [1.,0,0.1]
@@ -42,10 +42,10 @@ d6 = [p6,n6,o_p,o_n]
 D = [d3,d2,d1,d4,d5,d6]
 
 T = tr.euler_matrix(np.pi/30.,-np.pi/60.,np.pi/70.)
-T[:3,3]= np.array([0.01 ,-0.03,-0.002])
+T[:3,3]= np.array([0.001 ,-0.003,-0.002])
 for d in D:
     d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
-    d[1] = np.dot(T[:3,:3],d[1]) #+ T[:3,3]
+    d[1] = np.dot(T[:3,:3],d[1])
 
 extents = [0.05,0.02,0.34]
 
@@ -58,8 +58,7 @@ woodstick = trimesh.creation.box(extents)
 # tiny = 1e-5
 delta0 = 20
 sigma0 = np.diag([0.009, 0.009,0.009,0.04,0.04,0.04],0)
-sigma_desired = np.diag([1e-4,1e-4,1e-4,0.0005,0.0005,0.0005],0)
-# # sigma_desired = np.diag([tiny,tiny,tiny,tiny,tiny,tiny],0)
+sigma_desired = np.diag([0.0003,0.0003,0.0003,1e-6,1e-6,1e-6],0)
 dim = 6 # 6 DOFs
 ptcl0 = np.eye(4) 
 V0 = ptcl.Region([ptcl0], sigma0)    
@@ -67,5 +66,21 @@ M = 6 # No. of particles per delta-neighbohood
 
 list_particles, weights = ptcl.ScalingSeries(woodstick,V0, D, M, sigma0, sigma_desired, dim,visualize = False)
 
-# est = COPE.VisualizeParticles(list_particles, weights, env= env, body=woodstick, showestimated = False)
+# est = ptcl.VisualizeParticles(woodstick,list_particles, weights, showestimated = False)
+maxweight = weights[0]
+for w in weights:
+  if w > maxweight:
+    maxweight = w   
+
+acum_weight = 0
+acum_tf = np.zeros((4,4))
+weight_threshold = 0.7*maxweight
+for i in range(len(list_particles)):
+  if weights[i] > weight_threshold:
+    p = list_particles[i]
+    acum_tf += p*weights[i]
+    acum_weight += weights[i]
+estimated_particle = acum_tf*(1./acum_weight)
+transf = estimated_particle
+print "Resulting estimation:\n", transf
 print "Real transformation\n", T

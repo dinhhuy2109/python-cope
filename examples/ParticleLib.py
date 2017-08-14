@@ -117,15 +117,13 @@ def ComputeNormalizedWeights(mesh, list_particles, weights,measurements,tau):
   new_weights = np.zeros(len(list_particles))
   for i in range(len(list_particles)):
     T = list_particles[i]
-    new_mesh = copy.copy(mesh)
+    new_mesh = mesh.copy()
     new_mesh.apply_transform(T)
     total_energy = sum([CalculateMahaDistanceMesh(new_mesh,d)**2 for d in measurements])
-    new_weights[i] = weights[i]*np.exp(-total_energy/tau)
-    if new_weights[i] == 0.0:
-      IPython.embed()
-  print "Weights before normalization", new_weights
+    new_weights[i] = weights[i]*np.exp(-total_energy/2/tau)
+  # print "Weights before normalization", new_weights
   # IPython.embed()
-  return new_weights#normalize(new_weights)
+  return normalize(new_weights)
 
 def normalize(weights):
   norm_weights = np.zeros(len(weights))
@@ -171,9 +169,9 @@ def Pruning(list_particles, weights,percentage):
   for w in weights:
     if w > maxweight:
       maxweight = w
-  threshold = (1+1-percentage)*np.log(maxweight)
+  threshold = percentage*maxweight
   for i in range(len(list_particles)):
-    if np.log(weights[i]) > threshold:
+    if weights[i] > threshold:
       pruned_list.append(list_particles[i])
   return pruned_list
 
@@ -207,6 +205,8 @@ def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, dim = 6, visualize = Fa
     tau = 1.0     ##########################################
     # Sample new set of particles based on from previous region and M
     list_particles = EvenDensityCover(V_prv,M)
+    # IPython.embed()
+    # list_particles.append(
     print "No. of particles of the ", n+1, " run: ", len(list_particles), "particles"
     # Compute normalized weights
     uniform_weights = normalize(np.ones(len(list_particles)))
@@ -232,5 +232,5 @@ def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, dim = 6, visualize = Fa
   new_set_of_particles = EvenDensityCover(V_prv,M)
   print V_prv.sigma
   uniform_weights = normalize(np.ones(len(new_set_of_particles)))
-  new_weights = ComputeNormalizedWeights(new_set_of_particles, uniform_weights,D,1.0,mesh)
+  new_weights = ComputeNormalizedWeights(mesh,new_set_of_particles, uniform_weights,D,1.0)
   return new_set_of_particles,new_weights
