@@ -20,9 +20,11 @@
 
 import numpy  as np
 import trimesh as trm
+import scipy as sp
 import SE3UncertaintyLib as SE3lib
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import time
 import copy
 import IPython
 
@@ -76,65 +78,36 @@ class Region(object):
     self.particles_list = particles_list #List of particles (transformations)
     self.sigma = sigma
 
-def EvenDensityCover_old(region, M):
-  '''Input: region - sampling region represented as a union of neighborhoods, M - number of particles to sample per neighborhood
-  Output: a set of particles that evenly cover the region
-  '''
-  list_particles = []
-
-  for i  in range(len(region.particles_list)):
-    center_particle = region.particles_list[i]
-    sigma = region.sigma
-    cholsigma = np.linalg.cholesky(sigma).T
-    num_existing_p = 0
-    for p in list_particles:
-      if SE3lib.IsInside(SE3lib.TranToVec(p), SE3lib.TranToVec(center_particle), sigma):
-        num_existing_p += 1
-    for m in range(M-num_existing_p):
-    #TODO: Sample a particle in the sigma region
-      notinside = True;
-      while notinside:
-        uniformsample = np.random.uniform(-1,1,size = 6)
-        xisample = np.dot(cholsigma, uniformsample)
-        if SE3lib.IsInside(xisample, np.zeros(6), sigma):
-          Tsample = SE3lib.VecToTran(xisample)
-          new_p = np.dot(center_particle,Tsample)
-          notinside = False
-          #TODO: Check distances from the new particle to other sigma neighborhoods (other center particle's sigma region)
-      accepted = True
-      for k in range(i-1):
-        previous_center = region.particles_list[k]
-        if SE3lib.IsInside(SE3lib.TranToVec(new_p), SE3lib.TranToVec(previous_center),sigma):
-          accepted = False
-          break
-      #TODO: if satified, add this particle to list_particles
-      if accepted:
-        list_particles.append(new_p)
-  return list_particles
-      
 def EvenDensityCover(region, M):
-  '''Input: region - sampling region represented as a union of neighborhoods, M - number of particles to sample per neighborhood
-  Output: a set of particles that evenly cover the region
+  '''Input: Region V_n - sampling region represented as a union of neighborhoods, M - number of particles to sample per neighborhood
+  Output: a set of particles that evenly cover the region (the new spheres will have analogous shape to the region sigma)
   '''
-  list_particles = []
-  for i  in range(len(region.particles_list)):
+  particles = []
+  num_spheres = len(region.particles_list)
+  # num_total_particles = num_spheres*M
+  sigma = region.sigma
+  cholsigma = np.linalg.cholesky(sigma).T
+  for i  in range(num_spheres):
     center_particle = region.particles_list[i]
-    sigma = region.sigma
-    cholsigma = np.linalg.cholesky(sigma).T
+    xi_center =  SE3lib.TranToVec(center_particle)
     for m in range(M):
-      uniformsample = np.random.uniform(-1,1,size = 6)
-      xisample = np.dot(cholsigma, uniformsample)
-      Tsample = SE3lib.VecToTran(xisample)
-      new_p = np.dot(center_particle,Tsample)
-      accepted = True
-      for k in range(i-1):
-        previous_center = region.particles_list[k]
-        if SE3lib.IsInside(SE3lib.TranToVec(new_p), SE3lib.TranToVec(previous_center),sigma):
-          accepted = False
-          break
+      count = 0
+      accepted = False
+      while not accepted and count < 5:
+        uniformsample = np.random.uniform(-1,1,size = 6)
+        xi_new_particle = np.dot(cholsigma, uniformsample) + xi_center
+        count += 1
+        for k in range(i-1):
+          previous_center = region.particles_list[k]
+          if SE3lib.IsInside(xi_new_particle, SE3lib.TranToVec(previous_center),sigma):
+            accepted = False
+            break
+        accepted = True
       if accepted:
-        list_particles.append(new_p)
-  return list_particles
+        new_p = SE3lib.VecToTran(xi_new_particle)
+        particles.append(new_p)
+  # IPython.embed()
+  return particles
 
 class Mesh(object):
   def __init__(self, obj): #trimesh obj
@@ -143,22 +116,18 @@ class Mesh(object):
     self.normals = obj.face_normals
     self.facets = obj.facets
 
-def ComputeNormalizedWeights(mesh, list_particles, weights,measurements,tau):
-  import time
-  t8 = 0 
-  new_weights = np.zeros(len(list_particles))
-  for i in range(len(list_particles)):
-    t9 = time.time()
-    T = list_particles[i]
-    new_mesh = copy.deepcopy(mesh)
-    new_mesh.apply_transform(T)
-    
-    t8 += time.time() - t9
-    total_energy = sum([CalculateMahaDistanceMesh(new_mesh,d)**2 for d in measurements])
-    
-    new_weights[i] = (np.exp(-total_energy/tau))*weights[i]
-  print "Weights before normalization", new_weights
-  return normalize(new_weights),t8
+def ComputeNormalizedWeights(mesh, particles,measurements,tau):
+  num_particles = len(particles)
+  new_weights = np.zeros(num_particles)
+  for i in range(len(particles)):
+    T = np.linalg.inv(particles[i])
+    D = copy.deepcopy(measurements)
+    for d in D:
+      d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
+      d[1] = np.dot(T[:3,:3],d[1])
+    total_energy = sum([CalculateMahaDistanceMesh(mesh,d)**2 for d in D])
+    new_weights[i] = (np.exp(-0.5*total_energy/tau))
+  return normalize(new_weights)
 
 def normalize(weights):
   norm_weights = np.zeros(len(weights))
@@ -197,19 +166,28 @@ def CalculateMahaDistanceMesh(mesh,d):
     dis.append(CalculateMahaDistanceFace([mesh.vertices[A],mesh.vertices[B],mesh.vertices[C],mesh.face_normals[i]],d,i))
   return min(dis)
 
-def Pruning(list_particles, weights,percentage,tau):
+def Pruning(list_particles, weights,percentage):
   assert (len(list_particles)==len(weights)),"Wrong input data, length of list of particles are not equal to length of weight"
+  num_particles = len(list_particles)
   pruned_list = []
-  minus_log_weight = [(-np.log(w))*tau for w in weights] #energy
-  min_v = minus_log_weight[0]
-  for v in minus_log_weight:
-    if v < min_v:
-      min_v = v
-  threshold = percentage*min_v+min_v
-  for i in range(len(list_particles)):
-    if minus_log_weight[i] < threshold:
-      pruned_list.append(list_particles[i])
-  return pruned_list
+  new_list_p = []
+  new_list_w = []
+  c = [weights[0]]
+  for i in range(num_particles-1):
+    c.append(c[-1] + weights[i+1])
+  u = [np.random.uniform(0,1)/num_particles]
+  k = 0
+  for i in range(num_particles):
+    u[i] = u[0] + 1/num_particles*i
+    while (u[i] > c[k]):
+      k+=1
+    new_list_p.append(list_particles[k])  
+  for i in range(num_particles):
+    if SameTransforamtions(new_list_p[i],new_list_p[i-1]):
+      
+    
+def SameTransformations(T1,T2,rot_tol,trans_tol):
+  return True
 
 def Pruning_old(list_particles, weights,prune_percentage):
   assert (len(list_particles)==len(weights)),"Wrong input data, length of list of particles are not equal to length of weight"
@@ -224,6 +202,34 @@ def Pruning_old(list_particles, weights,prune_percentage):
       pruned_list.append(list_particles[i])
   return pruned_list
 
+def Visualize(list_particles=[],D=[]):
+  show_ = mesh.copy()
+  show_.apply_transform(list_particles[-1])
+  color = np.array([  21, 51,  252, 255])
+  for face in mesh.faces:
+    mesh.visual.face_colors[face] = color
+  for d in D:
+    sphere = trm.creation.icosphere(3,0.0025)
+    TF = np.eye(4)
+    TF[:3,3] = d[0]
+    TF2 = np.eye(4)
+    angle = np.arccos(np.dot(d[1],np.array([0,0,1])))
+    vec = np.cross(d[1],np.array([0,0,1]))
+    TF2[:3,:3] = SE3lib.VecToRot(angle*vec)
+    TF2[:3,3] = d[0] + np.dot(SE3lib.VecToRot(angle*vec),np.array([0,0,0.1/2.]))
+    cyl = trm.creation.cylinder(0.001,0.1)
+    cyl.apply_transform(TF2)
+    show_ += cyl
+    sphere.apply_transform(TF)
+    show_ += sphere
+  for z in range(len(list_particles)-1):
+    new_mesh = mesh.copy()
+    new_mesh.apply_transform(list_particles[z])
+    show_ += new_mesh
+    show_.show()
+  return True
+
+
 def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, prune_percentage =0.6,dim = 6, visualize = False):
   """
   @type  V0:  ParticleFilterLib.Region
@@ -233,97 +239,52 @@ def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, prune_percentage =0.6,d
   @param delta_desired: terminal value of delta
   @param dim: dimension of the state space (6 DOFs)
   """ 
-  # mesh = Mesh(obj)
   zoom = 2**(-1./dim)
   R, s , RT = np.linalg.svd(sigma0)
   Rd,sd, RTd = np.linalg.svd(sigma_desired)
-  nr = np.linalg.norm(s)
-  nr_desired = np.linalg.norm(sd)
-  N = int(np.round(np.log2((nr/nr_desired)**dim))) ############################
-  # print N
+  delta_0 = max(s)
+  delta_desired = max(sd)
+  volume_0 = np.pi**(dim/2)/sp.special.gamma(dim/2+1)*delta_0**dim
+  volume_desired = np.pi**(dim/2)/sp.special.gamma(dim/2+1)*delta_desired**dim
+  N = int(np.round(np.log2(volume_0/volume_desired)))
+  print N
   uniform_weights = normalize(np.ones(len(V0.particles_list)))
-  
-  sigma_prv = sigma0
-  V_prv = V0
-  list_particles = []
+  V_n = V0
+  sigma_n = sigma0
+  delta_n = delta_0
+  particles = []
   weights = []
-  nr_delta = 1
-  # Main loop
-  import time
   t1 = 0.
   t2 = 0.
   t3 = 0.
-  t4 = 0.
   for n in range(N):
-    sigma = sigma_prv*zoom
-    Rn, sn , RTn = np.linalg.svd(sigma)
-    tau =(np.linalg.norm(sn)/np.linalg.norm(sd))**2   #################
+    tau =(delta_n/delta_desired)**2
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
-    list_particles = EvenDensityCover(V_prv,M)
-    # import transformation as tr
-    # T = tr.euler_matrix(np.pi/30.,-np.pi/60.,np.pi/70.)
-    # T[:3,3]= np.array([0.001 ,-0.003,-0.002])
-    # list_particles = [T]
-    # list_particles.append(np.eye(4))
+    particles = EvenDensityCover(V_n,M)
+    print "len of new generated particles ", len(particles)
     print 'tau ', tau
-    print "No. of particles of the ", n+1, " run: ", len(list_particles), "particles"
     t1 += time.time() - t0
-
     t0 = time.time()
     # Compute normalized weights
-    uniform_weights = normalize(np.ones(len(list_particles)))
-    # print "uniform ",uniform_weights 
-    weights, t8 = ComputeNormalizedWeights(mesh, list_particles, uniform_weights, D, tau)
-    print "weights after normalizing",  weights
+    weights = ComputeNormalizedWeights(mesh, particles, D, tau)
+    # print "weights after normalizing",  weights
     t2 += time.time() - t0 
-    t4+=t8
     t0 = time.time()
     # Prune based on weights
-    # pruned_list_particles = Pruning(list_particles,weights,prune_percentage,tau)
-    pruned_list_particles = Pruning_old(list_particles,weights,prune_percentage)
+    pruned_particles = Pruning(particles,weights,prune_percentage)
     t3 += time.time() - t0     
-    print 'No. of particles, after pruning:', len(pruned_list_particles)
-    # raw_input("Press Enter to continue...")
+    print 'No. of particles, after pruning:', len(pruned_particles)
     # Create a new region from the set of particle left after pruning
-    V_prv = Region(pruned_list_particles,sigma)
-    sigma_prv = sigma
-
-    if visualize:
-      color = np.array([  2, 252,  52, 255])
-      for face in obj.faces:
-        obj.visual.face_colors[face] = color
-      show_ = obj.copy()
-      color = np.array([  21, 51,  252, 255])
-      for face in obj.faces:
-        obj.visual.face_colors[face] = color
-      for d in D:
-        sphere = trm.creation.icosphere(3,0.0025)
-        TF = np.eye(4)
-        TF[:3,3] = d[0]
-        TF2 = np.eye(4)
-        angle = np.arccos(np.dot(d[1],np.array([0,0,1])))
-        vec = np.cross(d[1],np.array([0,0,1]))
-        TF2[:3,:3] = SE3lib.VecToRot(angle*vec)
-        TF2[:3,3] = d[0] + np.dot(SE3lib.VecToRot(angle*vec),np.array([0,0,0.1/2.]))
-        cyl = trm.creation.cylinder(0.001,0.1)
-        cyl.apply_transform(TF2)
-        show_ += cyl
-        sphere.apply_transform(TF)
-        show_ += sphere
-      for z in pruned_list_particles:
-        new_mesh = obj.copy()
-        new_mesh.apply_transform(z)
-        show_ += new_mesh
-      show_.show()
+    sigma_n = sigma_n*zoom
+    R_n, s_n , RT_n = np.linalg.svd(sigma_n)
+    delta_n = max(s_n)
+    V_n = Region(pruned_particles,sigma_n)
     # raw_input()
     # print "delta_prv",  sigma
   print 't1 _ EVEN density', t1
   print 't2 _ UPDATE probability', t2
-  print 't4 _ ENERGY ', t4
   print 't3 _ PRUNE particles', t3
-  new_set_of_particles = EvenDensityCover(V_prv,M)
-  # print V_prv.sigma
-  uniform_weights = normalize(np.ones(len(new_set_of_particles)))
-  new_weights = ComputeNormalizedWeights(mesh,new_set_of_particles, uniform_weights,D,1.0)
-  return new_set_of_particles,new_weights
+  new_set_of_particles = EvenDensityCover(V_n,M)
+  new_weights = ComputeNormalizedWeights(mesh,new_set_of_particles,D,1.0)
+  return new_set_of_particles, new_weights

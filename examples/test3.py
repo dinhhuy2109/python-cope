@@ -50,7 +50,6 @@ for d in D:
     d[1] = np.dot(T[:3,:3],d[1])
 
 extents = [0.05,0.02,0.34]
-
 woodstick = trimesh.creation.box(extents)
 # handles = []
 # for d in D:
@@ -91,7 +90,7 @@ M = 6 # No. of particles per delta-neighbohood
 # raw_input()
 
 
-list_particles, weights = ptcl.ScalingSeries(woodstick,V0, D, M, sigma0, sigma_desired,prune_percentage, dim,visualize = False)
+list_particles, weights = ptcl.ScalingSeries(woodstick,V0, D, M, sigma0, sigma_desired,prune_percentage, dim,visualize = True)
 
 # est = ptcl.VisualizeParticles(woodstick,list_particles, weights, showestimated = False)
 maxweight = weights[0]
