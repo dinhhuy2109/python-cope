@@ -172,18 +172,26 @@ def Pruning(list_particles, weights,percentage):
   pruned_list = []
   new_list_p = []
   new_list_w = []
-  c = [weights[0]]
+  c = np.zeros(num_particles)
+  c[0] = weights[0]
   for i in range(num_particles-1):
-    c.append(c[-1] + weights[i+1])
-  u = [np.random.uniform(0,1)/num_particles]
+    c[i+1] = c[i] + weights[i+1]
+  u = np.zeros(num_particles)
+  u[0] = np.random.uniform(0,1)/num_particles
   k = 0
   for i in range(num_particles):
-    u[i] = u[0] + 1/num_particles*i
+    u[i] = u[0] + 1./num_particles*i
     while (u[i] > c[k]):
       k+=1
-    new_list_p.append(list_particles[k])  
+    new_list_p.append(list_particles[k]) 
   for i in range(num_particles):
-    if SameTransforamtions(new_list_p[i],new_list_p[i-1]):
+    if i == 0:
+      pruned_list.append(new_list_p[i])
+    else:
+      if not np.allclose(np.dot(new_list_p[i],np.linalg.inv(new_list_p[i-1])),np.eye(4)):
+        # IPython.embed()
+        pruned_list.append(new_list_p[i])
+  return pruned_list
       
     
 def SameTransformations(T1,T2,rot_tol,trans_tol):
@@ -202,7 +210,7 @@ def Pruning_old(list_particles, weights,prune_percentage):
       pruned_list.append(list_particles[i])
   return pruned_list
 
-def Visualize(list_particles=[],D=[]):
+def Visualize(mesh,list_particles=[],D=[]):
   show_ = mesh.copy()
   show_.apply_transform(list_particles[-1])
   color = np.array([  21, 51,  252, 255])
@@ -272,7 +280,7 @@ def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, prune_percentage =0.6,d
     t2 += time.time() - t0 
     t0 = time.time()
     # Prune based on weights
-    pruned_particles = Pruning(particles,weights,prune_percentage)
+    pruned_particles = Pruning_old(particles,weights,prune_percentage)
     t3 += time.time() - t0     
     print 'No. of particles, after pruning:', len(pruned_particles)
     # Create a new region from the set of particle left after pruning
@@ -280,6 +288,7 @@ def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, prune_percentage =0.6,d
     R_n, s_n , RT_n = np.linalg.svd(sigma_n)
     delta_n = max(s_n)
     V_n = Region(pruned_particles,sigma_n)
+    Visualize(mesh,pruned_particles,D)
     # raw_input()
     # print "delta_prv",  sigma
   print 't1 _ EVEN density', t1
