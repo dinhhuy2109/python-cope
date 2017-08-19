@@ -74,39 +74,54 @@ def VisualizeParticles(list_particles,weights,env='',body ='', showestimated = F
 
 
 class Region(object):
-  def __init__(self, particles_list, sigma):
-    self.particles_list = particles_list #List of particles (transformations)
-    self.sigma = sigma
+  def __init__(self, particles, delta_rot,delta_trans):
+    self.particles = particles #List of particles (transformations)
+    self.delta_rot = delta_rot
+    self.delta_trans = delta_trans
+
+def IsInside(point,center,radius):
+  if np.linalg.norm(point-center) < radius:
+    return True
+  return False
+
 
 def EvenDensityCover(region, M):
   '''Input: Region V_n - sampling region represented as a union of neighborhoods, M - number of particles to sample per neighborhood
   Output: a set of particles that evenly cover the region (the new spheres will have analogous shape to the region sigma)
   '''
   particles = []
-  num_spheres = len(region.particles_list)
-  # num_total_particles = num_spheres*M
-  sigma = region.sigma
-  cholsigma = np.linalg.cholesky(sigma).T
+  num_spheres = len(region.particles)
+  delta_rot = region.delta_rot
+  delta_trans = region.delta_trans
   for i  in range(num_spheres):
-    center_particle = region.particles_list[i]
-    xi_center =  SE3lib.TranToVec(center_particle)
-    for m in range(M):
+    center_particle = region.particles[i]
+    center_vec_rot =  SE3lib.RotToVec(center_particle[:3,:3])
+    center_vec_trans = center_particle[:3,3]
+    num_existing = 0
+    for p in particles:
+      if IsInside(SE3lib.RotToVec(p[:3,:3]),center_vec_rot,delta_rot) and IsInside(p[:3,3],center_vec_trans,delta_trans):
+        num_existing += 1
+    for m in range(M-num_existing):
       count = 0
       accepted = False
       while not accepted and count < 5:
-        uniformsample = np.random.uniform(-1,1,size = 6)
-        xi_new_particle = np.dot(cholsigma, uniformsample) + xi_center
+        new_vec_rot = np.random.uniform(-1,1,size = 3)*delta_rot + center_vec_rot
+        new_vec_trans = np.random.uniform(-1,1,size = 3)*delta_trans + center_vec_trans
         count += 1
+        accepted = True
         for k in range(i-1):
-          previous_center = region.particles_list[k]
-          if SE3lib.IsInside(xi_new_particle, SE3lib.TranToVec(previous_center),sigma):
+          previous_center = region.particles[k]
+          previous_vec_rot = SE3lib.RotToVec(previous_center[:3,:3])
+          previous_vec_trans = previous_center[:3,3]
+          if IsInside(SE3lib.RotToVec(p[:3,:3]),previous_vec_rot,delta_rot) and IsInside(p[:3,3],previous_vec_trans,delta_trans):
             accepted = False
             break
-        accepted = True
       if accepted:
-        new_p = SE3lib.VecToTran(xi_new_particle)
+        new_p = np.eye(4)
+        new_p[:3,:3] = SE3lib.VecToRot(new_vec_rot)
+        new_p[:3,3] = new_vec_trans
         particles.append(new_p)
-  # IPython.embed()
+    # IPython.embed()
   return particles
 
 class Mesh(object):
@@ -234,11 +249,14 @@ def Visualize(mesh,list_particles=[],D=[]):
     new_mesh = mesh.copy()
     new_mesh.apply_transform(list_particles[z])
     show_ += new_mesh
-    show_.show()
+  show_.show()
+  # raw_input()
   return True
 
+def Volume(radius,dim):
+  return (np.pi**(dim/2.))/sp.special.gamma(dim/2.+1)*(radius**dim)
 
-def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, prune_percentage =0.6,dim = 6, visualize = False):
+def ScalingSeries(mesh, particles0, D, M, sigma0, sigma_desired, prune_percentage =0.6,dim = 6, visualize = False):
   """
   @type  V0:  ParticleFilterLib.Region
   @param V0:  initial uncertainty region
@@ -247,29 +265,36 @@ def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, prune_percentage =0.6,d
   @param delta_desired: terminal value of delta
   @param dim: dimension of the state space (6 DOFs)
   """ 
-  zoom = 2**(-1./dim)
-  R, s , RT = np.linalg.svd(sigma0)
-  Rd,sd, RTd = np.linalg.svd(sigma_desired)
-  delta_0 = max(s)
-  delta_desired = max(sd)
-  volume_0 = np.pi**(dim/2)/sp.special.gamma(dim/2+1)*delta_0**dim
-  volume_desired = np.pi**(dim/2)/sp.special.gamma(dim/2+1)*delta_desired**dim
-  N = int(np.round(np.log2(volume_0/volume_desired)))
+  zoom = 2**(-1./6.)
+  delta_rot = np.max(np.linalg.cholesky(sigma0[3:,3:]).T)
+  delta_trans = np.max(np.linalg.cholesky(sigma0[:3,:3]).T)
+  delta_desired_rot = np.max(np.linalg.cholesky(sigma_desired[3:,3:]).T)
+  delta_desired_trans = np.max(np.linalg.cholesky(sigma_desired[:3,:3]).T)
+  print delta_rot
+  print delta_trans
+  print delta_desired_rot
+  print delta_desired_trans
+  raw_input()
+  N_rot  = np.log2(Volume(delta_rot,3)/Volume(delta_desired_rot,3))
+  N_trans = np.log2(Volume(delta_trans,3)/Volume(delta_desired_trans,3))
+  N = int(np.round(max(N_rot,N_trans)))
+  # IPython.embed()
+  # N = int(np.round(np.log2(volume_0/volume_desired)))
   print N
-  uniform_weights = normalize(np.ones(len(V0.particles_list)))
-  V_n = V0
-  sigma_n = sigma0
-  delta_n = delta_0
-  particles = []
-  weights = []
+  particles = particles0
+  V = Region(particles,delta_rot,delta_trans)
   t1 = 0.
   t2 = 0.
   t3 = 0.
   for n in range(N):
-    tau =(delta_n/delta_desired)**2
+    print N-n
+    delta_rot = delta_rot*zoom
+    delta_trans = delta_trans*zoom
+    tau = (delta_trans/delta_desired_trans)**(1./1.)
+    
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
-    particles = EvenDensityCover(V_n,M)
+    particles = EvenDensityCover(V,M)
     print "len of new generated particles ", len(particles)
     print 'tau ', tau
     t1 += time.time() - t0
@@ -284,16 +309,14 @@ def ScalingSeries(mesh, V0, D, M, sigma0, sigma_desired, prune_percentage =0.6,d
     t3 += time.time() - t0     
     print 'No. of particles, after pruning:', len(pruned_particles)
     # Create a new region from the set of particle left after pruning
-    sigma_n = sigma_n*zoom
-    R_n, s_n , RT_n = np.linalg.svd(sigma_n)
-    delta_n = max(s_n)
-    V_n = Region(pruned_particles,sigma_n)
-    Visualize(mesh,pruned_particles,D)
+    V = Region(pruned_particles,delta_rot,delta_trans)
+    if visualize:
+      Visualize(mesh,particles,D)
     # raw_input()
     # print "delta_prv",  sigma
   print 't1 _ EVEN density', t1
   print 't2 _ UPDATE probability', t2
   print 't3 _ PRUNE particles', t3
-  new_set_of_particles = EvenDensityCover(V_n,M)
-  new_weights = ComputeNormalizedWeights(mesh,new_set_of_particles,D,1.0)
+  new_set_of_particles = EvenDensityCover(V,M)
+  new_weights = ComputeNormalizedWeights(mesh, new_set_of_particles,D,1.0)
   return new_set_of_particles, new_weights

@@ -13,41 +13,34 @@ import SE3UncertaintyLib as SE3
 # ion()
 
 # Measurements
-o_p = 3e-3
-o_n = 10./180.0*np.pi
+o_p = 2e-3
+o_n = 5./180.0*np.pi
 
-p1 = [-0.0255,0.007,0.11] # side near y
-n1 = [1.,0,0.001]
+p1 = [-0.025,0.007,0.11] # side near y
+n1 = [1.,0,0.00001]
 d1 = [p1,n1,o_p,o_n]
 
-p3 = [0.0252,-0.003,0.12] # side near y
-n3 = [-1.,0.002,0]
+p3 = [0.02505,-0.003,0.12] # side near y
+n3 = [-1.,0.00002,0]
 d3 = [p3,n3,o_p,o_n]
 
-p2 = [0.01,0.005, 0.1707] # top
-n2 = [0,0.02,-1.]
+p2 = [0.01,0.005, 0.17007] # top
+n2 = [0,0.00002,-1.]
 d2 = [p2,n2,o_p,o_n]
 
-p4 = [-0.015,-0.043, 0.1692] # top!!!!!!!!!!!!!!!
+p4 = [-0.015,-0.043, 0.1698] # top!!!!!!!!!!!!!!!
 n4 = [0,0.0,-1]
 d4 = [p4,n4,o_p,o_n]
 
-p5 = [0.002,-0.0106,0.102] # side near x
+p5 = [0.002,-0.0101,0.102] # side near x
 n5 = [0.,1.,0.0]
 d5 = [p5,n5,o_p,o_n]
 
-p6 = [0.01,0.0107,0.12] # side near x
-n6 = [0.001,-1,0.001]
+p6 = [0.01,0.0102,0.12] # side near x
+n6 = [0.00001,-1,0.0]
 d6 = [p6,n6,o_p,o_n]
 
 D = [d3,d2,d1,d5,d6]
-
-T = tr.euler_matrix(np.pi/30.,-np.pi/60.,np.pi/70.)
-T[:3,3]= np.array([0.001 ,-0.003,-0.002])
-# T = np.eye(4)
-for d in D:
-    d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
-    d[1] = np.dot(T[:3,:3],d[1])
 
 extents = [0.05,0.02,0.34]
 woodstick = trimesh.creation.box(extents)
@@ -57,20 +50,28 @@ woodstick = trimesh.creation.box(extents)
     
 # # raw_input("Press Enter to continue...")
 # tiny = 1e-5
-delta0 = 20
-sigma0 = np.diag([0.009, 0.009,0.009,0.004,0.004,0.004],0)
-sigma_desired = np.diag([0.0005,0.0005,0.0005,1e-6,1e-6,1e-6],0)
+sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
+cholsigma = np.linalg.cholesky(sigma0).T
+uniformsample = np.random.uniform(-1,1,size = 6)
+xi_new_particle = np.dot(cholsigma, uniformsample)
+T = SE3.VecToTran(xi_new_particle)
+# T = np.eye(4)
+for d in D:
+    d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
+    d[1] = np.dot(T[:3,:3],d[1])
+sigma_desired = 0.25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
+print sigma0
 dim = 6 # 6 DOFs
 prune_percentage = 0.8
-ptcl0 = np.eye(4) 
-V0 = ptcl.Region([ptcl0], sigma0)    
-M = 6 # No. of particles per delta-neighbohood
+ptcls0 = [np.eye(4)]
+M = 10# No. of particles per delta-neighbohood
 
 # color = trimesh.visual.random_color()
 # for face in woodstick.faces:
 #     woodstick.visual.face_colors[face] = color
 
 # show = woodstick.copy()
+# show.apply_transform(T)
 # color = trimesh.visual.random_color()
 # for d in D:
 #   sphere = trimesh.creation.icosphere(3,0.0025)
@@ -89,8 +90,8 @@ M = 6 # No. of particles per delta-neighbohood
 # show.show()
 # raw_input()
 
-
-list_particles, weights = ptcl.ScalingSeries(woodstick,V0, D, M, sigma0, sigma_desired,prune_percentage, dim,visualize = True)
+# woodstick.apply_transform(T2)
+list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim,visualize = False)
 
 # est = ptcl.VisualizeParticles(woodstick,list_particles, weights, showestimated = False)
 maxweight = weights[0]
