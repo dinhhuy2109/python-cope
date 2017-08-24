@@ -1,16 +1,9 @@
 import numpy as np
-# from openravepy import *
-import ParticleLib as ptcl
+import ParticleLib_offlineangle as ptcl
 import trimesh
 import transformation as tr
 import SE3UncertaintyLib as SE3
-# from pylab import *
-
-# env = Environment()
-# env.SetViewer('qtcoin')
-# woodstick = env.ReadKinBodyXMLFile("woodstick.xml")
-# #env.AddKinBody(woodstick,True)
-# ion()
+import pickle
 
 # Measurements
 o_p = 2e-3
@@ -42,14 +35,14 @@ d6 = [p6,n6,o_p,o_n]
 
 D = [d3,d2,d1,d5,d6]
 
+pkl_file = open('sorted_mesh.p', 'rb')
+sorted_mesh = pickle.load(pkl_file)
+pkl_file.close()
+
 extents = [0.05,0.02,0.34]
 woodstick = trimesh.creation.box(extents)
-# handles = []
-# for d in D:
-    # handles.append(env.plot3(d[0],0.001, colors=[0, 1, 0],drawstyle=1))
-    
-# # raw_input("Press Enter to continue...")
-# tiny = 1e-5
+visualize_mesh = woodstick
+
 sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
 cholsigma = np.linalg.cholesky(sigma0).T
 uniformsample = np.random.uniform(-1,1,size = 6)
@@ -59,6 +52,7 @@ T = SE3.VecToTran(xi_new_particle)
 for d in D:
     d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
     d[1] = np.dot(T[:3,:3],d[1])
+    d[1] = d[1]/np.linalg.norm(d[1])
 sigma_desired = 0.25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 print sigma0
 dim = 6 # 6 DOFs
@@ -66,34 +60,32 @@ prune_percentage = 0.8
 ptcls0 = [np.eye(4)]
 M = 10# No. of particles per delta-neighbohood
 
-color = trimesh.visual.random_color()
-for face in woodstick.faces:
-    woodstick.visual.face_colors[face] = color
+# color = trimesh.visual.random_color()
+# for face in woodstick.faces:
+#     woodstick.visual.face_colors[face] = color
 
-show = woodstick.copy()
-show.apply_transform(T)
-color = trimesh.visual.random_color()
-for d in D:
-  sphere = trimesh.creation.icosphere(3,0.0025)
-  TF = np.eye(4)
-  TF[:3,3] = d[0]
-  TF2 = np.eye(4)
-  angle = np.arccos(np.dot(d[1],np.array([0,0,1])))
-  vec = np.cross(d[1],np.array([0,0,1]))
-  TF2[:3,:3] = SE3.VecToRot(angle*vec)
-  TF2[:3,3] = d[0] + np.dot(SE3.VecToRot(angle*vec),np.array([0,0,0.1/2.]))
-  cyl = trimesh.creation.cylinder(0.001,0.1)
-  cyl.apply_transform(TF2)
-  show += cyl
-  sphere.apply_transform(TF)
-  show+=sphere
-show.show()
-raw_input()
+# show = woodstick.copy()
+# show.apply_transform(T)
+# color = trimesh.visual.random_color()
+# for d in D:
+#   sphere = trimesh.creation.icosphere(3,0.0025)
+#   TF = np.eye(4)
+#   TF[:3,3] = d[0]
+#   TF2 = np.eye(4)
+#   angle = np.arccos(np.dot(d[1],np.array([0,0,1])))
+#   vec = np.cross(d[1],np.array([0,0,1]))
+#   TF2[:3,:3] = SE3.VecToRot(angle*vec)
+#   TF2[:3,3] = d[0] + np.dot(SE3.VecToRot(angle*vec),np.array([0,0,0.1/2.]))
+#   cyl = trimesh.creation.cylinder(0.001,0.1)
+#   cyl.apply_transform(TF2)
+#   show += cyl
+#   sphere.apply_transform(TF)
+#   show+=sphere
+# show.show()
+# raw_input()
 
-# woodstick.apply_transform(T2)
-list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim,visualize = True)
+list_particles, weights = ptcl.ScalingSeries(sorted_mesh,visualize_mesh,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim, visualize = False)
 
-# est = ptcl.VisualizeParticles(woodstick,list_particles, weights, showestimated = False)
 maxweight = weights[0]
 for w in weights:
   if w > maxweight:
@@ -111,3 +103,4 @@ estimated_particle = acum_vec*(1./acum_weight)
 transf = SE3.VecToTran(estimated_particle)
 print "Resulting estimation:\n", transf
 print "Real transformation\n", T
+
