@@ -141,8 +141,9 @@ def ComputeNormalizedWeights(mesh, particles,measurements,tau):
     for d in D:
       d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
       d[1] = np.dot(T[:3,:3],d[1])
-    total_energy = sum([CalculateMahaDistanceMesh_old(mesh,d)**2 for d in D])
+    total_energy = sum([CalculateMahaDistanceMesh(mesh,d)**2 for d in D])
     new_weights[i] = (np.exp(-0.5*total_energy/tau))
+  print total_energy
   return normalize(new_weights)
 
 def normalize(weights):
@@ -155,7 +156,7 @@ def normalize(weights):
 def CalculateMahaDistanceFace(face,d,i):
   '''
   :param face:     Vector [p1,p2,p3]: three points of a face
-  :param d:           Measurement data [p,n,o_n,o_p]: measurement point and vector
+  :param d:        Measurement data [p,n,o_n,o_p]: measurement point and vector
   :return:
   '''
   p1,p2,p3,v = face
@@ -342,6 +343,7 @@ def ScalingSeries(sorted_mesh, visualize_mesh, particles0, D, M, sigma0, sigma_d
   print 't1 _ EVEN density', t1
   print 't2 _ UPDATE probability', t2
   print 't3 _ PRUNE particles', t3
+  # IPython.embed()
   new_set_of_particles = EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeights(sorted_mesh, new_set_of_particles,D,1.0)
   return new_set_of_particles, new_weights

@@ -21,7 +21,7 @@ p2 = [0.01,0.005, 0.17007] # top
 n2 = [0,0.00002,-1.]
 d2 = [p2,n2,o_p,o_n]
 
-p4 = [-0.015,-0.043, 0.1698] # top!!!!!!!!!!!!!!!
+p4 = [-0.015,-0.043, 0.1698] # top!!!!!!!!!!!!!!! outlier
 n4 = [0,0.0,-1]
 d4 = [p4,n4,o_p,o_n]
 
@@ -84,7 +84,7 @@ M = 10# No. of particles per delta-neighbohood
 # show.show()
 # raw_input()
 
-list_particles, weights = ptcl.ScalingSeries(sorted_mesh,visualize_mesh,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim, visualize = False)
+list_particles, weights = ptcl.ScalingSeries(sorted_mesh,visualize_mesh,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim, visualize = True)
 
 maxweight = weights[0]
 for w in weights:

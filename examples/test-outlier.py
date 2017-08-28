@@ -1,6 +1,6 @@
 import numpy as np
 # from openravepy import *
-import ParticleLib as ptcl
+import ParticleLibOutlier as ptcl
 import trimesh
 import transformation as tr
 import SE3UncertaintyLib as SE3
@@ -28,8 +28,8 @@ p2 = [0.01,0.005, 0.17007] # top
 n2 = [0,0.00002,-1.]
 d2 = [p2,n2,o_p,o_n]
 
-p4 = [-0.015,-0.043, 0.1698] # top!!!!!!!!!!!!!!!
-n4 = [0,0.0,-1]
+p4 = [-0.015,-0.043, 0.29] # top!!!!!!!!!!!!!!!
+n4 = [0,0.0,-1.]
 d4 = [p4,n4,o_p,o_n]
 
 p5 = [0.002,-0.0101,0.102] # side near x
@@ -40,7 +40,17 @@ p6 = [0.01,0.0102,0.12] # side near x
 n6 = [0.00001,-1,0.0]
 d6 = [p6,n6,o_p,o_n]
 
-D = [d3,d2,d1,d5,d6]
+p7 = [-0.01,-0.0102,0.02] # side near x
+n7 = np.dot(n6,-1)
+d7 = [p7,n7,o_p,o_n]
+
+p8 = [0.005,-0.0102,-0.052] # side near x
+d8 = [p8,n7,o_p,o_n]
+
+p9 = [-0.008,0.0102,-0.1] # side near x
+d9 = [p9,n6,o_p,o_n]
+
+D = [d3,d2,d1,d5,d6,d4,d7,d8,d9]
 
 extents = [0.05,0.02,0.34]
 woodstick = trimesh.creation.box(extents)
@@ -87,27 +97,54 @@ for d in D:
   show += cyl
   sphere.apply_transform(TF)
   show+=sphere
-# show.show()
+show.show()
 # raw_input()
 
-# woodstick.apply_transform(T2)
-list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim,visualize = False)
+n = 5  #  the minimum number of data values required to fit the model
+k = 10 # the maximum number of iterations allowed in the algorithm
+t = 0.1  # a threshold value for determining when a data point fits a model
+d = 7 # the number of close data values required to assert that a model fits well to data
 
-# est = ptcl.VisualizeParticles(woodstick,list_particles, weights, showestimated = False)
-maxweight = weights[0]
-for w in weights:
-  if w > maxweight:
-    maxweight = w   
+iterations = 0
+bestfit = []
+besterr = 999.
+from random import randrange
+while iterations < k:
+  maybeinliers = []
+  maybeinliers_indexes = []
+  for i in range(n):
+    random_index = randrange(0,len(D))
+    maybeinliers.append(D[random_index])
+    maybeinliers_indexes.append(random_index)
+  data = maybeinliers
+  alsoinliers = []
 
-acum_weight = 0
-acum_vec = np.zeros(6)
-weight_threshold = 0.7*maxweight
-for i in range(len(list_particles)):
-  if weights[i] > weight_threshold:
-    p = SE3.TranToVec(list_particles[i])
-    acum_vec += p*weights[i]
-    acum_weight += weights[i]
-estimated_particle = acum_vec*(1./acum_weight)
-transf = SE3.VecToTran(estimated_particle)
-print "Resulting estimation:\n", transf
-print "Real transformation\n", T
+
+  list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, data, M, sigma0, sigma_desired,prune_percentage, dim,visualize =False)
+  # est = ptcl.VisualizeParticles(woodstick,list_particles, weights, showestimated = False)
+  maxweight = weights[0]
+  for w in weights:
+    if w > maxweight:
+      maxweight = w   
+
+  acum_weight = 0
+  acum_vec = np.zeros(6)
+  weight_threshold = 0.7*maxweight
+  for i in range(len(list_particles)):
+    if weights[i] > weight_threshold:
+      p = SE3.TranToVec(list_particles[i])
+      acum_vec += p*weights[i]
+      acum_weight += weights[i]
+  estimated_particle = acum_vec*(1./acum_weight)
+  transf = SE3.VecToTran(estimated_particle)
+
+  maybemodel = estimated_particle
+  
+  for i in range(len(D)):
+    if i not in maybeinliers_indexes:
+      #check if D[i] is fit the new particles?
+      #if yes, add to the alsoinliers
+      
+
+  # print "Resulting estimation:\n", transf
+  # print "Real transformation\n", T
