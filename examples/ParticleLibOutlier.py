@@ -270,24 +270,24 @@ def ScalingSeries(mesh, particles0, D, M, sigma0, sigma_desired, prune_percentag
   delta_trans = np.max(np.linalg.cholesky(sigma0[:3,:3]).T)
   delta_desired_rot = np.max(np.linalg.cholesky(sigma_desired[3:,3:]).T)
   delta_desired_trans = np.max(np.linalg.cholesky(sigma_desired[:3,:3]).T)
-  print delta_rot
-  print delta_trans
-  print delta_desired_rot
-  print delta_desired_trans
+  # print delta_rot
+  # print delta_trans
+  # print delta_desired_rot
+  # print delta_desired_trans
   # raw_input()
   N_rot  = np.log2(Volume(delta_rot,3)/Volume(delta_desired_rot,3))
   N_trans = np.log2(Volume(delta_trans,3)/Volume(delta_desired_trans,3))
   N = int(np.round(max(N_rot,N_trans)))
   # IPython.embed()
   # N = int(np.round(np.log2(volume_0/volume_desired)))
-  print N
+  # print N
   particles = particles0
   V = Region(particles,delta_rot,delta_trans)
   t1 = 0.
   t2 = 0.
   t3 = 0.
   for n in range(N):
-    print N-n
+    # print N-n
     delta_rot = delta_rot*zoom
     delta_trans = delta_trans*zoom
     tau = (delta_trans/delta_desired_trans)**(1./1.)
@@ -295,8 +295,8 @@ def ScalingSeries(mesh, particles0, D, M, sigma0, sigma_desired, prune_percentag
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
     particles = EvenDensityCover(V,M)
-    print "len of new generated particles ", len(particles)
-    print 'tau ', tau
+    # print "len of new generated particles ", len(particles)
+    # print 'tau ', tau
     t1 += time.time() - t0
     t0 = time.time()
     # Compute normalized weights
@@ -307,16 +307,16 @@ def ScalingSeries(mesh, particles0, D, M, sigma0, sigma_desired, prune_percentag
     # Prune based on weights
     pruned_particles = Pruning_old(particles,weights,prune_percentage)
     t3 += time.time() - t0     
-    print 'No. of particles, after pruning:', len(pruned_particles)
+    # print 'No. of particles, after pruning:', len(pruned_particles)
     # Create a new region from the set of particle left after pruning
     V = Region(pruned_particles,delta_rot,delta_trans)
     if visualize:
       Visualize(mesh,particles,D)
     # raw_input()
     # print "delta_prv",  sigma
-  print 't1 _ EVEN density', t1
-  print 't2 _ UPDATE probability', t2
-  print 't3 _ PRUNE particles', t3
+  # print 't1 _ EVEN density', t1
+  # print 't2 _ UPDATE probability', t2
+  # print 't3 _ PRUNE particles', t3
   new_set_of_particles = EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeights(mesh, new_set_of_particles,D,1.0)
   return new_set_of_particles, new_weights
