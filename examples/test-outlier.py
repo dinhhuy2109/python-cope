@@ -5,7 +5,7 @@ import trimesh
 import transformation as tr
 import SE3UncertaintyLib as SE3
 import copy
-
+import IPython
 # env = Environment()
 # env.SetViewer('qtcoin')
 # woodstick = env.ReadKinBodyXMLFile("woodstick.xml")
@@ -28,7 +28,7 @@ p2 = [0.01,0.005, 0.17007] # top
 n2 = [0,0.00002,-1.]
 d2 = [p2,n2,o_p,o_n]
 
-p4 = [-0.015,-0.043, 0.29] # top!!!!!!!!!!!!!!!
+p4 = [-0.015,-0.025, 0.19] # top!!!!!!!!!!!!!!!
 n4 = [0,0.0,-1.]
 d4 = [p4,n4,o_p,o_n]
 
@@ -102,10 +102,48 @@ M = 10# No. of particles per delta-neighbohood
 
 
 
+inliers_indexes = [5, 8, 6, 2, 3, 0, 1,7]
+D1 = [D[i] for i in inliers_indexes]
+
+list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, D1, M, sigma0, sigma_desired,prune_percentage, dim,visualize = False)
+maxweight = weights[0]
+for w in weights:
+  if w > maxweight:
+    maxweight = w   
+acum_weight = 0
+acum_vec = np.zeros(6)
+weight_threshold = 0.7*maxweight
+for i in range(len(list_particles)):
+  if weights[i] > weight_threshold:
+    p = SE3.TranToVec(list_particles[i])
+    acum_vec += p*weights[i]
+    acum_weight += weights[i]
+estimated_particle = acum_vec*(1./acum_weight)
+transf = SE3.VecToTran(estimated_particle)
+print "Resulting estimation:\n", transf
+print "Real transformation\n", T
+
+# D2 = [D[i] for i in inliers_indexes]
+# sum_energy = 0.
+# for k in range(len(D2)):
+#   datapoint = copy.deepcopy(D2[k])
+#   T_inv = np.linalg.inv(SE3.VecToTran(estimated_particle))
+#   datapoint[0] = np.dot(T_inv[:3,:3],datapoint[0]) + T_inv[:3,3]
+#   datapoint[1] = np.dot(T_inv[:3,:3],datapoint[1])
+#   dist = ptcl.CalculateMahaDistanceMesh(woodstick,datapoint)
+#   print 'Dist of ',inliers_indexes[k], 'is', dist
+#   sum_energy += dist**2
+# print sum_energy
+# IPython.embed()
+raw_input()
+
+
+
+
 n = 5  #  the minimum number of data values required to fit the model
 k = 10 # the maximum number of iterations allowed in the algorithm
 t = 2  # a threshold value for determining when a data point fits a model
-d = 6 # the number of close data values required to assert that a model fits well to data
+d = 7  # the number of close data values required to assert that a model fits well to data
 
 iterations = 0
 bestfit = np.eye(4)
@@ -123,7 +161,7 @@ while iterations < k:
   data = maybeinliers
   alsoinliers = []
 
-  print 'init maybeinliers_indexes', maybeinliers_indexes
+  # print 'init maybeinliers_indexes', maybeinliers_indexes
 
   list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, data, M, sigma0, sigma_desired,prune_percentage, dim,visualize =False)
   maxweight = weights[0]
@@ -143,7 +181,6 @@ while iterations < k:
   transf = SE3.VecToTran(estimated_particle)
 
   maybemodel = estimated_particle
-  # D = [d3,d2,d1,d5,d6]
   for i in range(len(D)):
     if i not in maybeinliers_indexes:
       #check if D[i] is fit the new particles?
@@ -157,12 +194,13 @@ while iterations < k:
       if dist < t:
         maybeinliers.append(datapoint)
         maybeinliers_indexes.append(i)
-        print 'idx',i
-        print 'Mahadist', dist
+        # print 'idx',i
+        # print 'Mahadist', dist
         # raw_input('enter to contd')
   if len(maybeinliers) > d: #maybe good model
     # print "Maybe good model!"
     # raw_input()
+    data = copy.deepcopy(maybeinliers)
     list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, data, M, sigma0, sigma_desired,prune_percentage, dim,visualize =False)
     maxweight = weights[0]
     for w in weights:
@@ -180,17 +218,21 @@ while iterations < k:
     bettermodel = SE3.VecToTran(estimated_particle)
 
     T_inv = np.linalg.inv(bettermodel)
-    for datapoint in maybeinliers:
+    total_energy = 0.
+    for datapoint in data:
       datapoint[0] = np.dot(T_inv[:3,:3],datapoint[0]) + T_inv[:3,3]
       datapoint[1] = np.dot(T_inv[:3,:3],datapoint[1])
-    total_energy = sum([ptcl.CalculateMahaDistanceMesh(woodstick,datapoint)**2 for datapoint in maybeinliers])
-    err_thismodel = total_energy# (np.exp(-0.5*total_energy/1.))
+      dist = ptcl.CalculateMahaDistanceMesh(woodstick,datapoint)
+      print dist
+      total_energy += dist**2
+    err_thismodel = np.sqrt(total_energy)
 
+    print "new err",err_thismodel
+    print "Inliers indexes", maybeinliers_indexes
     if err_thismodel < besterr:
       besterr = err_thismodel
       bestfit = bettermodel
       bestindexes = maybeinliers_indexes
-      print "Inliers indexes", maybeinliers_indexes
       print "Best err SO FAR", besterr
 print 'Best indexes', bestindexes
 print 'Best err', besterr
@@ -198,17 +240,13 @@ print "Resulting estimation:\n", bestfit
 print "Real transformation\n", T
 
 
-print 'test indexes'
-D = [D[i] for i in [2, 5, 0, 6, 7, 3, 8]]
-# woodstick.apply_transform(T2)
-list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim,visualize = False)
 
-# est = ptcl.VisualizeParticles(woodstick,list_particles, weights, showestimated = False)
+rawdata = copy.deepcopy(D)
+list_particles, weights = ptcl.ScalingSeries(woodstick,ptcls0, rawdata, M, sigma0, sigma_desired,prune_percentage, dim,visualize = False)
 maxweight = weights[0]
 for w in weights:
   if w > maxweight:
     maxweight = w   
-
 acum_weight = 0
 acum_vec = np.zeros(6)
 weight_threshold = 0.7*maxweight
@@ -219,4 +257,4 @@ for i in range(len(list_particles)):
     acum_weight += weights[i]
 estimated_particle = acum_vec*(1./acum_weight)
 transf = SE3.VecToTran(estimated_particle)
-print "Resulting estimation:\n", transf
+print "Resulting estimation w raw data:\n", transf

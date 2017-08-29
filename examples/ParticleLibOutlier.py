@@ -137,6 +137,7 @@ def ComputeNormalizedWeights(mesh, particles,measurements,tau):
   for i in range(len(particles)):
     T = np.linalg.inv(particles[i])
     D = copy.deepcopy(measurements)
+    total_energy = 0.
     for d in D:
       d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
       d[1] = np.dot(T[:3,:3],d[1])
@@ -290,7 +291,7 @@ def ScalingSeries(mesh, particles0, D, M, sigma0, sigma_desired, prune_percentag
     # print N-n
     delta_rot = delta_rot*zoom
     delta_trans = delta_trans*zoom
-    tau = (delta_trans/delta_desired_trans)**(1./1.)
+    tau = (delta_trans/delta_desired_trans)**(1./2.)
     
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
