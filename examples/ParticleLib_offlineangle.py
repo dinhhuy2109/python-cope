@@ -153,6 +153,52 @@ def normalize(weights):
     norm_weights[i] = weights[i]/sum_weights
   return norm_weights
 
+def ComputeNormalizedWeightsB(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau):
+  num_particles = len(particles)
+  new_weights = np.zeros(num_particles)
+  for i in range(len(particles)):
+    T = np.linalg.inv(particles[i])
+    D = copy.deepcopy(measurements)
+    for d in D:
+      d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
+      d[1] = np.dot(T[:3,:3],d[1])
+    total_energy = sum([FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err)**2 for measurement in D])
+    new_weights[i] = (np.exp(-0.5*total_energy/tau))
+  # print total_energy
+  return normalize(new_weights)
+
+def FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err):
+    ref_vec = sorted_face[2]
+    sorted_angle = sorted_face[1]
+    face_idx = sorted_face[0]
+    angle =  np.arccos(np.dot(measurement[1],ref_vec))
+    idx = bisect.bisect_right(sorted_angle,angle)-1
+    up_bound = idx + bisect.bisect_right(sorted_angle[idx:],sorted_angle[idx]+nor_err)
+    low_bound = bisect.bisect_left(sorted_angle[:idx],sorted_angle[idx]-nor_err)
+    dist = []
+    for i in range(low_bound,up_bound):
+        A,B,C = mesh.faces[face_idx[i]]
+        dist.append(CalculateDistanceFace([mesh.vertices[A],mesh.vertices[B],mesh.vertices[C],mesh.face_normals[face_idx[i]]],measurement,pos_err,nor_err))
+    return min(dist)
+
+def FindminimumDistanceMeshOriginal(mesh,sorted_face,measurement,pos_err,nor_err):
+    dist = []
+    for i in range(len(mesh.faces)):
+        A,B,C = mesh.faces[i]
+        dist.append(CalculateDistanceFace([mesh.vertices[A],mesh.vertices[B],mesh.vertices[C],mesh.face_normals[i]],measurement,pos_err,nor_err))
+    return min(dist)
+
+def CalculateDistanceFace(face,measurement,pos_err,nor_err):
+    p1,p2,p3,nor = face
+    pos_measurement = measurement[0]
+    nor_measurement = measurement[1]
+    norm = lambda x: np.linalg.norm(x)
+    inner = lambda a, b: np.inner(a,b)
+    diff_distance   = norm(inner((pos_measurement-p1), nor)/norm(nor))
+    diff_angle      = np.arccos(inner(nor, nor_measurement)/norm(nor)/norm(nor_measurement))
+    dist = np.sqrt(diff_distance**2/pos_err**2+diff_angle**2/nor_err**2)
+    return dist
+
 def CalculateMahaDistanceFace(face,d,i):
   '''
   :param face:     Vector [p1,p2,p3]: three points of a face
@@ -188,7 +234,7 @@ def CalculateMahaDistanceMesh(mesh,d):
   # IPython.embed()
   up_bound = bisect.bisect_right(x,angle+delta_angle)
   low_bound = bisect.bisect_left(x[:up_bound],angle-delta_angle)
-  for i in range(up_bound-low_bound):
+  for i in range(low_bound,up_bound):
     # print i, angle, low_bound, up_bound, mesh[0][i][
     # print d_normal,mesh[0][i][1]
     A,B,C = mesh[0][i][0]
@@ -282,6 +328,7 @@ def Visualize(mesh,list_particles=[],D=[]):
 def Volume(radius,dim):
   return (np.pi**(dim/2.))/sp.special.gamma(dim/2.+1)*(radius**dim)
 
+
 def ScalingSeries(sorted_mesh, visualize_mesh, particles0, D, M, sigma0, sigma_desired, prune_percentage =0.6,dim = 6, visualize = False):
   """
   @type  V0:  ParticleFilterLib.Region
@@ -346,4 +393,67 @@ def ScalingSeries(sorted_mesh, visualize_mesh, particles0, D, M, sigma0, sigma_d
   # IPython.embed()
   new_set_of_particles = EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeights(sorted_mesh, new_set_of_particles,D,1.0)
+  return new_set_of_particles, new_weights
+
+
+def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage = 0.6,dim = 6, visualize = False):
+  """
+  @type  V0:  ParticleFilterLib.Region
+  @param V0:  initial uncertainty region
+  @param  D:  a list of measurements [p,n,o_n,o_p] p is the contacted point, n is the approaching vector (opposite to normal)
+  @param  M:  the no. of particles per neighborhood
+  @param delta_desired: terminal value of delta
+  @param dim: dimension of the state space (6 DOFs)
+  """ 
+  zoom = 2**(-1./6.)
+  delta_rot = np.max(np.linalg.cholesky(sigma0[3:,3:]).T)
+  delta_trans = np.max(np.linalg.cholesky(sigma0[:3,:3]).T)
+  delta_desired_rot = np.max(np.linalg.cholesky(sigma_desired[3:,3:]).T)
+  delta_desired_trans = np.max(np.linalg.cholesky(sigma_desired[:3,:3]).T)
+  # raw_input()
+  N_rot  = np.log2(Volume(delta_rot,3)/Volume(delta_desired_rot,3))
+  N_trans = np.log2(Volume(delta_trans,3)/Volume(delta_desired_trans,3))
+  N = int(np.round(max(N_rot,N_trans)))
+  # IPython.embed()
+  # N = int(np.round(np.log2(volume_0/volume_desired)))
+  print N
+  particles = particles0
+  V = Region(particles,delta_rot,delta_trans)
+  t1 = 0.
+  t2 = 0.
+  t3 = 0.
+  for n in range(N):
+    print N-n
+    delta_rot = delta_rot*zoom
+    delta_trans = delta_trans*zoom
+    tau = (delta_trans/delta_desired_trans)**(1./1.)
+    
+    # Sample new set of particles based on from previous region and M
+    t0 = time.time()
+    particles = EvenDensityCover(V,M)
+    print "len of new generated particles ", len(particles)
+    print 'tau ', tau
+    t1 += time.time() - t0
+    t0 = time.time()
+    # Compute normalized weights
+    weights = ComputeNormalizedWeightsB(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
+    # print "weights after normalizing",  weights
+    t2 += time.time() - t0 
+    t0 = time.time()
+    # Prune based on weights
+    pruned_particles = Pruning_old(particles,weights,prune_percentage)
+    t3 += time.time() - t0     
+    print 'No. of particles, after pruning:', len(pruned_particles)
+    # Create a new region from the set of particle left after pruning
+    V = Region(pruned_particles,delta_rot,delta_trans)
+    if visualize:
+      Visualize(visualize_mesh,particles,measurements)
+    # raw_input()
+    # print "delta_prv",  sigma
+  print 't1 _ EVEN density', t1
+  print 't2 _ UPDATE probability', t2
+  print 't3 _ PRUNE particles', t3
+  new_set_of_particles = EvenDensityCover(V,M)
+  new_weights = ComputeNormalizedWeightsB(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
+  IPython.embed()
   return new_set_of_particles, new_weights

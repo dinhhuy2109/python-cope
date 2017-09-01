@@ -4,23 +4,30 @@ import scipy as sp
 import bisect
 import SE3UncertaintyLib as SE3
 import transformation as tr
+import ParticleLib_offlineangle as ptcl
 import pickle
 import copy
 import IPython
 
-def generate_measurements(mesh,tranformation,pos_err,nor_err,num_measurements):
+def generate_measurements(mesh,pos_err,nor_err,num_measurements):
   ## Generate random points on obj surfaces
   # For individual triangle sampling uses this method:
   # http://mathworld.wolfram.com/TrianglePointPicking.html
 
-  # len(mesh.faces) float array of the areas of each face of the mesh
-  area = mesh.area_faces
-  # total area (float)
-  area_sum = np.sum(area)
-  # cumulative area (len(mesh.faces))
-  area_cum = np.cumsum(area)
-  face_pick = np.random.random(num_measurements)*area_sum
-  face_index = np.searchsorted(area_cum, face_pick)
+  # # len(mesh.faces) float array of the areas of each face of the mesh
+  # area = mesh.area_faces
+  # # total area (float)
+  # area_sum = np.sum(area)
+  # # cumulative area (len(mesh.faces))
+  # area_cum = np.cumsum(area)
+  # face_pick = np.random.random(num_measurements)*area_sum
+  # face_index = np.searchsorted(area_cum, face_pick)
+
+  face_w_normal_up = []
+  for i in range(len(mesh.faces)):
+    if np.dot(mesh.face_normals[i],np.array((0,0,1))) >= -0.1:
+      face_w_normal_up.append(i)
+  face_index = np.random.choice(face_w_normal_up,num_measurements)
   # pull triangles into the form of an origin + 2 vectors
   tri_origins = mesh.triangles[:, 0]
   tri_vectors = mesh.triangles[:, 1:].copy()
@@ -60,43 +67,78 @@ def generate_measurements(mesh,tranformation,pos_err,nor_err,num_measurements):
   # print np.sqrt(np.cov(dist))
   # print np.sqrt(np.cov(alpha))
   measurements = [[noisy_points[i],noisy_normals[i]] for i in range(num_measurements)]
-  return measurements
+  return measurements #note that the normals here are sampled on obj surfaces
 
 
-pkl_file = open('mesh_w_dict.p', 'rb')
-mesh_w_dict = pickle.load(pkl_file)
+# pkl_file = open('mesh_w_dict.p', 'rb')
+# mesh_w_dict = pickle.load(pkl_file)
+# pkl_file.close()
+
+# mesh = trimesh.load_mesh('featuretype.STL')
+
+pkl_file = open('woodstick_w_dict.p', 'rb')
+sorted_face = pickle.load(pkl_file)
 pkl_file.close()
 
-mesh = trimesh.load_mesh('featuretype.STL')
+extents = [0.05,0.02,0.34]
+mesh = trimesh.creation.box(extents)
 
 # Measurements' Errs
 pos_err = 2e-3
 nor_err = 5./180.0*np.pi
 
-num_measurements = 10
-tranformation= np.eye(4)
+num_measurements = 7
+measurements = generate_measurements(mesh,pos_err,nor_err,num_measurements)
 
-measurements = generate_measurements(mesh,tranformation,pos_err,nor_err,num_measurements)
-
-
+# Visualize mesh and measuarement
 color = trimesh.visual.random_color()
 for face in mesh.faces:
     mesh.visual.face_colors[face] = color
-
 show = mesh.copy()
 color = trimesh.visual.random_color()
 for d in measurements:
-  sphere = trimesh.creation.icosphere(3,0.01)
+  sphere = trimesh.creation.icosphere(3,0.005)
   TF = np.eye(4)
   TF[:3,3] = d[0]
-  TF2 = np.eye(4)
-  angle = np.arccos(np.dot(d[1],np.array([0,0,1])))
-  vec = np.cross(d[1],np.array([0,0,1]))
-  TF2[:3,:3] = SE3.VecToRot(angle*vec)
-  TF2[:3,3] = d[0] + np.dot(SE3.VecToRot(angle*vec),np.array([0,0,0.1/2.]))
-  cyl = trimesh.creation.cylinder(0.1,1)
-  cyl.apply_transform(TF2)
-  # show += cyl
   sphere.apply_transform(TF)
   show+=sphere
 show.show()
+
+
+#
+sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
+sigma_desired = 0.25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
+
+cholsigma0 = np.linalg.cholesky(sigma0).T
+uniformsample = np.random.uniform(-1,1,size = 6)
+xi_new_particle = np.dot(cholsigma0, uniformsample)
+T = SE3.VecToTran(xi_new_particle)
+# T = np.eye(4)
+for d in measurements:
+    d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
+    d[1] = np.dot(T[:3,:3],d[1])
+
+dim = 6 # 6 DOFs
+prune_percentage = 0.8
+ptcls0 = [np.eye(4)]
+M = 10
+
+
+# Run scaling series
+list_particles, weights = ptcl.ScalingSeriesB(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+maxweight = weights[0]
+for w in weights:
+  if w > maxweight:
+    maxweight = w   
+acum_weight = 0
+acum_vec = np.zeros(6)
+weight_threshold = 0.7*maxweight
+for i in range(len(list_particles)):
+  if weights[i] > weight_threshold:
+    p = SE3.TranToVec(list_particles[i])
+    acum_vec += p*weights[i]
+    acum_weight += weights[i]
+estimated_particle = acum_vec*(1./acum_weight)
+transf = SE3.VecToTran(estimated_particle)
+print "Resulting estimation:\n", transf
+print "Real transformation\n", T

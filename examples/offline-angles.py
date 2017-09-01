@@ -22,16 +22,18 @@ def normal_hashing(obj,num_random_unit,plot_histogram):
       n = obj.face_normals[i]
       angle = np.arccos(np.dot(n,ref_axis))
       angle_dict.append(angle)
-      mesh.append([np.asarray(obj.faces[i]),n,angle]) 
+      # mesh.append([np.asarray(obj.faces[i]),n,angle])
+      mesh.append([i,angle])
 
     hist,bin_edges = np.histogram(angle_dict,range=(0,np.pi),density=True)
     normalized_hist = hist/np.sum(hist)
     if sp.stats.entropy(normalized_hist) > entropy: #histogram with bigger shannon entropy is selected
       entropy = sp.stats.entropy(normalized_hist)
-      mesh_w_sorted_dict = [sorted(mesh,key=lambda f: f[2]),obj.vertices,ref_axis]
+      # mesh_w_sorted_dict = [sorted(mesh,key=lambda f: f[2]),obj.vertices,ref_axis]
+      sorted_dict = [sorted(mesh,key=lambda f: f[1]),ref_axis]
       toshow = normalized_hist,bin_edges
 
-  print 'Selected unit vec:',mesh_w_sorted_dict[2]
+  print 'Selected unit vec:',sorted_dict[1]
   print 'Entropy:', entropy
 
   if plot_histogram:
@@ -50,15 +52,18 @@ def normal_hashing(obj,num_random_unit,plot_histogram):
     fig.tight_layout()
     plt.show(True)
   # IPython.embed()
-  return mesh_w_sorted_dict # A list [sorted_faces,vertices,ref_axis]
+  face_idx = [sorted_dict[0][i][0] for i in range(len(sorted_dict[0]))]
+  angle_list = [sorted_dict[0][i][1] for i in range(len(sorted_dict[0]))]
+  mesh_w_sorted_dict = [face_idx,angle_list,sorted_dict[1]]
+  return mesh_w_sorted_dict # A list [[sorted_face_idx,angle],ref_axis]
 
 
 extents = [0.05,0.02,0.34]
 woodstick = trimesh.creation.box(extents)
 complicated_obj = trimesh.load_mesh('featuretype.STL')
-mesh_w_dict = normal_hashing(complicated_obj,50,plot_histogram=True)
-# normal_hashing(woodstick,100,plot_histogram=True)
-pickle.dump(mesh_w_dict, open('mesh_w_dict.p', 'wb'))
+# mesh_w_dict = normal_hashing(complicated_obj,50,plot_histogram=True)
+mesh_w_dict = normal_hashing(woodstick,10,plot_histogram=True)
+pickle.dump(mesh_w_dict, open('woodstick_w_dict.p', 'wb'))
 # raw_input()
 
 

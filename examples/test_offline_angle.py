@@ -84,7 +84,7 @@ M = 10# No. of particles per delta-neighbohood
 # show.show()
 # raw_input()
 
-list_particles, weights = ptcl.ScalingSeries(sorted_mesh,visualize_mesh,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim, visualize = True)
+list_particles, weights = ptcl.ScalingSeries(sorted_mesh,visualize_mesh,ptcls0, D, M, sigma0, sigma_desired,prune_percentage, dim, visualize = False)
 
 maxweight = weights[0]
 for w in weights:
