@@ -167,18 +167,45 @@ def ComputeNormalizedWeightsB(mesh,sorted_face,particles,measurements,pos_err,no
   # print total_energy
   return normalize(new_weights)
 
+def TestOfflineAngle(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau):
+  num_particles = len(particles)
+  new_weights = np.zeros(num_particles)
+  for i in range(len(particles)):
+    T = np.linalg.inv(particles[i])
+    D = copy.deepcopy(measurements)
+    for d in D:
+      d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
+      d[1] = np.dot(T[:3,:3],d[1])
+    A = [FindminimumDistanceMeshOriginal(mesh,sorted_face,measurement,pos_err,nor_err)**2 for measurement in D]
+    print'\n'
+    print A
+    B = [FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err)**2 for measurement in D]
+    print B
+    # raw_input()
+  return True
+
+
 def FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err):
     ref_vec = sorted_face[2]
     sorted_angle = sorted_face[1]
     face_idx = sorted_face[0]
     angle =  np.arccos(np.dot(measurement[1],ref_vec))
-    idx = bisect.bisect_right(sorted_angle,angle)-1
-    up_bound = idx + bisect.bisect_right(sorted_angle[idx:],sorted_angle[idx]+nor_err)
-    low_bound = bisect.bisect_left(sorted_angle[:idx],sorted_angle[idx]-nor_err)
+    idx = bisect.bisect_right(sorted_angle,angle)
+    if idx >= len(sorted_angle):
+      up_bound = idx
+    else:
+      up_bound = idx + bisect.bisect_right(sorted_angle[idx:],sorted_angle[idx]+sorted_angle[idx]-angle+nor_err)
+    if idx == 0:
+      low_bound = 0
+    else:
+      low_bound = bisect.bisect_left(sorted_angle[:idx],sorted_angle[idx-1]-(sorted_angle[idx-1]-angle)-nor_err)-1
     dist = []
     for i in range(low_bound,up_bound):
         A,B,C = mesh.faces[face_idx[i]]
         dist.append(CalculateDistanceFace([mesh.vertices[A],mesh.vertices[B],mesh.vertices[C],mesh.face_normals[face_idx[i]]],measurement,pos_err,nor_err))
+    # print 'DIst',dist , ' low up bound', face_idx[low_bound:up_bound]
+    # print 'min', min(dist)**2
+    # IPython.embed()
     return min(dist)
 
 def FindminimumDistanceMeshOriginal(mesh,sorted_face,measurement,pos_err,nor_err):
@@ -186,6 +213,7 @@ def FindminimumDistanceMeshOriginal(mesh,sorted_face,measurement,pos_err,nor_err
     for i in range(len(mesh.faces)):
         A,B,C = mesh.faces[i]
         dist.append(CalculateDistanceFace([mesh.vertices[A],mesh.vertices[B],mesh.vertices[C],mesh.face_normals[i]],measurement,pos_err,nor_err))
+    # print 'Dist', dist, 'IDX', dist.index(min(dist))
     return min(dist)
 
 def CalculateDistanceFace(face,measurement,pos_err,nor_err):
@@ -195,7 +223,9 @@ def CalculateDistanceFace(face,measurement,pos_err,nor_err):
     norm = lambda x: np.linalg.norm(x)
     inner = lambda a, b: np.inner(a,b)
     diff_distance   = norm(inner((pos_measurement-p1), nor)/norm(nor))
+    # print 'dist d', diff_distance
     diff_angle      = np.arccos(inner(nor, nor_measurement)/norm(nor)/norm(nor_measurement))
+    # print 'dist angle', diff_angle
     dist = np.sqrt(diff_distance**2/pos_err**2+diff_angle**2/nor_err**2)
     return dist
 
@@ -426,7 +456,9 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     print N-n
     delta_rot = delta_rot*zoom
     delta_trans = delta_trans*zoom
-    tau = (delta_trans/delta_desired_trans)**(1./1.)
+    tau = (delta_trans/delta_desired_trans)**(2./1.)
+    # if tau > 1000:
+      # tau = 1000.
     
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
@@ -435,6 +467,7 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     print 'tau ', tau
     t1 += time.time() - t0
     t0 = time.time()
+    # haha = TestOfflineAngle(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
     # Compute normalized weights
     weights = ComputeNormalizedWeightsB(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
     # print "weights after normalizing",  weights
@@ -454,6 +487,66 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
   print 't2 _ UPDATE probability', t2
   print 't3 _ PRUNE particles', t3
   new_set_of_particles = EvenDensityCover(V,M)
-  new_weights = ComputeNormalizedWeightsB(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
-  IPython.embed()
+  new_weights = ComputeNormalizedWeightsB(mesh,sorted_face,new_set_of_particles,measurements,pos_err,nor_err,tau)
   return new_set_of_particles, new_weights
+
+
+def generate_measurements(mesh,pos_err,nor_err,num_measurements):
+  ## Generate random points on obj surfaces
+  # For individual triangle sampling uses this method:
+  # http://mathworld.wolfram.com/TrianglePointPicking.html
+
+  # # len(mesh.faces) float array of the areas of each face of the mesh
+  # area = mesh.area_faces
+  # # total area (float)
+  # area_sum = np.sum(area)
+  # # cumulative area (len(mesh.faces))
+  # area_cum = np.cumsum(area)
+  # face_pick = np.random.random(num_measurements)*area_sum
+  # face_index = np.searchsorted(area_cum, face_pick)
+
+  face_w_normal_up = []
+  for i in range(len(mesh.faces)):
+    if np.dot(mesh.face_normals[i],np.array((0,0,1))) >= -0.1:
+      face_w_normal_up.append(i)
+  face_index = np.random.choice(face_w_normal_up,num_measurements)
+  # pull triangles into the form of an origin + 2 vectors
+  tri_origins = mesh.triangles[:, 0]
+  tri_vectors = mesh.triangles[:, 1:].copy()
+  tri_vectors -= np.tile(tri_origins, (1, 2)).reshape((-1, 2, 3))
+  # pull the vectors for the faces we are going to sample from
+  tri_origins = tri_origins[face_index]
+  tri_vectors = tri_vectors[face_index]
+  # randomly generate two 0-1 scalar components to multiply edge vectors by
+  random_lengths = np.random.random((len(tri_vectors), 2, 1))
+  # points will be distributed on a quadrilateral if we use 2 0-1 samples
+  # if the two scalar components sum less than 1.0 the point will be
+  # inside the triangle, so we find vectors longer than 1.0 and
+  # transform them to be inside the triangle
+  random_test = random_lengths.sum(axis=1).reshape(-1) > 1.0
+  random_lengths[random_test] -= 1.0
+  random_lengths = np.abs(random_lengths)
+  # multiply triangle edge vectors by the random lengths and sum
+  sample_vector = (tri_vectors * random_lengths).sum(axis=1)
+  # finally, offset by the origin to generate
+  # (n,3) points in space on the triangle
+  samples = sample_vector + tri_origins
+  normals = mesh.face_normals[face_index]
+
+  ## Transform points and add noise
+  # point_errs = np.random.multivariate_normal(np.zeros(3),np.eye(3),num_measurements)
+  random_vecs = np.random.uniform(-1,1,(num_measurements,3))
+  point_errs = np.asarray([np.random.normal(0.,np.sqrt(3)*pos_err)*random_vec/np.linalg.norm(random_vec) for random_vec in random_vecs])
+  noisy_points = copy.deepcopy(samples) + point_errs
+
+
+  noisy_normals = [np.dot(tr.rotation_matrix(np.random.normal(0.,nor_err),np.cross(np.random.uniform(-1,1,3),n))[:3,:3],n) for n in normals]
+  noisy_normals = np.asarray([noisy_n/np.linalg.norm(noisy_n) for noisy_n in noisy_normals])
+
+  dist = [np.linalg.norm(point_err) for point_err in point_errs]
+  alpha = [np.arccos(np.dot(noisy_normals[i],normals[i])) for i in range(len(normals))]
+## not correct alpha err!!
+  # print np.sqrt(np.cov(dist))
+  # print np.sqrt(np.cov(alpha))
+  measurements = [[noisy_points[i],noisy_normals[i]] for i in range(num_measurements)]
+  return measurements #note that the normals here are sampled on obj surfaces

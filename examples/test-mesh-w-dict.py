@@ -87,7 +87,7 @@ mesh = trimesh.creation.box(extents)
 pos_err = 2e-3
 nor_err = 5./180.0*np.pi
 
-num_measurements = 7
+num_measurements = 9
 measurements = generate_measurements(mesh,pos_err,nor_err,num_measurements)
 
 # Visualize mesh and measuarement
@@ -107,6 +107,7 @@ show.show()
 
 #
 sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
+sigma0 = np.diag([0.0009, 0.0009,0.0009,1.,1.,1.],0)
 sigma_desired = 0.25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 
 cholsigma0 = np.linalg.cholesky(sigma0).T
@@ -119,13 +120,14 @@ for d in measurements:
     d[1] = np.dot(T[:3,:3],d[1])
 
 dim = 6 # 6 DOFs
-prune_percentage = 0.8
+prune_percentage = 0.7
 ptcls0 = [np.eye(4)]
 M = 10
 
 
 # Run scaling series
 list_particles, weights = ptcl.ScalingSeriesB(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+
 maxweight = weights[0]
 for w in weights:
   if w > maxweight:
