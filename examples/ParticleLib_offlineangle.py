@@ -441,31 +441,30 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
   delta_trans = np.max(np.linalg.cholesky(sigma0[:3,:3]).T)
   delta_desired_rot = np.max(np.linalg.cholesky(sigma_desired[3:,3:]).T)
   delta_desired_trans = np.max(np.linalg.cholesky(sigma_desired[:3,:3]).T)
-  # raw_input()
+
   N_rot  = np.log2(Volume(delta_rot,3)/Volume(delta_desired_rot,3))
   N_trans = np.log2(Volume(delta_trans,3)/Volume(delta_desired_trans,3))
   N = int(np.round(max(N_rot,N_trans)))
-  # IPython.embed()
+
   # N = int(np.round(np.log2(volume_0/volume_desired)))
-  print N
+  # print N
   particles = particles0
   V = Region(particles,delta_rot,delta_trans)
   t1 = 0.
   t2 = 0.
   t3 = 0.
   for n in range(N):
-    print N-n
+    # print N-n
     delta_rot = delta_rot*zoom
     delta_trans = delta_trans*zoom
-    tau = (delta_trans/delta_desired_trans)**(2./1.)
-    # if tau > 1000:
-      # tau = 1000.
+    tau = (delta_trans/delta_desired_trans)**(1./1.) # if initial err is small can use this otherway use the below one
+    # tau = (delta_trans/delta_desired_trans)**(2./1.)
     
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
     particles = EvenDensityCover(V,M)
-    print "len of new generated particles ", len(particles)
-    print 'tau ', tau
+    # print "len of new generated particles ", len(particles)
+    # print 'tau ', tau
     t1 += time.time() - t0
     t0 = time.time()
     # haha = TestOfflineAngle(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
@@ -477,16 +476,16 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     # Prune based on weights
     pruned_particles = Pruning_old(particles,weights,prune_percentage)
     t3 += time.time() - t0     
-    print 'No. of particles, after pruning:', len(pruned_particles)
+    # print 'No. of particles, after pruning:', len(pruned_particles)
     # Create a new region from the set of particle left after pruning
     V = Region(pruned_particles,delta_rot,delta_trans)
     if visualize:
       Visualize(visualize_mesh,particles,measurements)
     # raw_input()
     # print "delta_prv",  sigma
-  print 't1 _ EVEN density', t1
-  print 't2 _ UPDATE probability', t2
-  print 't3 _ PRUNE particles', t3
+  # print 't1 _ EVEN density', t1
+  # print 't2 _ UPDATE probability', t2
+  # print 't3 _ PRUNE particles', t3
   new_set_of_particles = EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeightsB(mesh,sorted_face,new_set_of_particles,measurements,pos_err,nor_err,tau)
   return new_set_of_particles, new_weights
