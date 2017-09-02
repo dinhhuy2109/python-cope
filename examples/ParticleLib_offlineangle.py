@@ -23,6 +23,7 @@ import trimesh as trm
 import scipy as sp
 import SE3UncertaintyLib as SE3lib
 import bisect
+import transformation as tr
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
@@ -491,7 +492,7 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
   return new_set_of_particles, new_weights
 
 
-def generate_measurements(mesh,pos_err,nor_err,num_measurements):
+def GenerateMeasurements(mesh,pos_err,nor_err,num_measurements):
   ## Generate random points on obj surfaces
   # For individual triangle sampling uses this method:
   # http://mathworld.wolfram.com/TrianglePointPicking.html
