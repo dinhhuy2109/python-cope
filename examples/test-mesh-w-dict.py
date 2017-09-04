@@ -106,8 +106,8 @@ show.show()
 
 
 #
-sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
-# sigma0 = np.diag([0.0009, 0.0009,0.0009,1.,1.,1.],0)
+# sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
+sigma0 = np.diag([0.0025, 0.0025,0.0025,1.,1.,1.],0)
 sigma_desired = 0.25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 
 cholsigma0 = np.linalg.cholesky(sigma0).T

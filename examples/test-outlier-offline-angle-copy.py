@@ -80,6 +80,7 @@ def RansacParticle(n,k,threshold,d,mesh,sorted_face, ptcls0, measurements, pos_e
         best_idx = maybeinliers_idx
         if score > 8e-5:
             break
+        print iterations
     # raw_input()
   return best_hypothesis,best_score,best_idx
 
@@ -99,67 +100,37 @@ inliers = ptcl.GenerateMeasurements(mesh,pos_err,nor_err,num_inliers)
 
 pos_err_outlier = 50e-3
 nor_err_outlier = 50./180.0*np.pi
-num_outliers = 3
+num_outliers = 5
 outliers = ptcl.GenerateMeasurements(mesh,pos_err_outlier,nor_err_outlier,num_outliers)
 
 measurements = copy.deepcopy(inliers + outliers)
-measurements = [[np.array([ 0.02020934, -0.00093154, -0.04818443]),
-  np.array([ 0.99092475, -0.10126434,  0.08839504])],
- [np.array([ 0.02230125, -0.00838275, -0.0544496 ]),
-  np.array([ 0.99268845, -0.02376552,  0.11834209])],
- [np.array([-0.00044406,  0.00389368,  0.05819387]),
-  np.array([ 0.08800807,  0.9636131 ,  0.25239725])],
- [np.array([-0.03384596, -0.01920963,  0.17853665]),
-  np.array([-0.02158618, -0.12763422,  0.99158638])],
- [np.array([-0.02859522, -0.01616938,  0.12176566]),
-  np.array([-0.07438778, -0.98612014, -0.14843697])],
- [np.array([-0.00488758, -0.00768086, -0.02598989]),
-  np.array([-0.02095794, -0.99877968, -0.04472045])],
- [np.array([-0.02021277,  0.02075643, -0.1498303 ]),
-  np.array([ 0.14026719,  0.97193785,  0.18884369])],
- [np.array([-0.02059115, -0.02535577,  0.18090993]),
-  np.array([-0.0449068 ,  0.00590515,  0.99897373])],
- [np.array([ -3.89635169e-02,  -2.66610422e-05,   1.07404905e-01]),
-  np.array([-0.98686551,  0.15952528,  0.0254587 ])],
- [np.array([ 0.01949362,  0.00311245,  0.05224403]),
-  np.array([ 0.06794772,  0.99447112,  0.08006432])],
- [np.array([ 0.04585108, -0.03629538, -0.10581397]),
-  np.array([-0.41481841, -0.90695784, -0.07316524])],
- [np.array([-0.05054189, -0.04681321, -0.12583244]),
-  np.array([ 0.45212409, -0.88942588,  0.06712228])],
- [np.array([-0.03489201, -0.02910762,  0.17616147]),
-  np.array([-0.8131653 , -0.31389047, -0.49013771])]]
-T = np.array([[ 0.99674075,  0.05832855, -0.05572835, -0.00781362],
-       [-0.06259863,  0.99496818, -0.07822868, -0.00166119],
-       [ 0.05088497,  0.08146223,  0.99537662,  0.01204734],
-       [ 0.        ,  0.        ,  0.        ,  1.        ]])
   
 # Visualize mesh and measuarements
-# color = trimesh.visual.random_color()
-# for face in mesh.faces:
-#     mesh.visual.face_colors[face] = color
-# show = mesh.copy()
-# color = trimesh.visual.random_color()
-# for d in measurements:
-#   sphere = trimesh.creation.icosphere(3,0.005)
-#   TF = np.eye(4)
-#   TF[:3,3] = d[0]
-#   sphere.apply_transform(TF)
-#   show+=sphere
-# show.show()
+color = trimesh.visual.random_color()
+for face in mesh.faces:
+    mesh.visual.face_colors[face] = color
+show = mesh.copy()
+color = trimesh.visual.random_color()
+for d in measurements:
+  sphere = trimesh.creation.icosphere(3,0.005)
+  TF = np.eye(4)
+  TF[:3,3] = d[0]
+  sphere.apply_transform(TF)
+  show+=sphere
+show.show()
 
 # Uncertainty & params
-# # sigma0 = np.diag([0.0009, 0.0009,0.0009,1.,1.,1.],0)
-sigma0 = np.diag([0.0009, 0.0009,0.0009,0.01,0.01,0.01],0)
+sigma0 = np.diag([0.0025, 0.0025,0.0025,1.,1.,1.],0)
+# sigma0 = np.diag([0.0009, 0.0009,0.0009,0.01,0.01,0.01],0)
 sigma_desired = np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
-# cholsigma0 = np.linalg.cholesky(sigma0).T
-# uniformsample = np.random.uniform(-1,1,size = 6)
-# xi_new_particle = np.dot(cholsigma0, uniformsample)
-# T = SE3.VecToTran(xi_new_particle)
+cholsigma0 = np.linalg.cholesky(sigma0).T
+uniformsample = np.random.uniform(-1,1,size = 6)
+xi_new_particle = np.dot(cholsigma0, uniformsample)
+T = SE3.VecToTran(xi_new_particle)
 
-# for d in measurements:
-#     d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
-#     d[1] = np.dot(T[:3,:3],d[1])
+for d in measurements:
+    d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
+    d[1] = np.dot(T[:3,:3],d[1])
 dim = 6 # 6 DOFs
 prune_percentage = 0.7
 ptcls0 = [np.eye(4)]
@@ -173,7 +144,7 @@ all_measurements_transf =  RunScalingSeries(mesh,sorted_face, ptcls0, measuremen
 t0 = time.time()
 # RANSAC
 n = 5  #  the minimum number of data values required to fit the model
-k = 10 # the maximum number of iterations allowed in the algorithm
+k = 30 # the maximum number of iterations allowed in the algorithm
 threshold = 3.  # a threshold value for determining when a data point fits a model
 d = 7  # the number of good data values required to assert that a model fits well to data
 ransac_transformation, ransac_score, ransac_inliers_idx = RansacParticle(n,k,threshold,d,mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)

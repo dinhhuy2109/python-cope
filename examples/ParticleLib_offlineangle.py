@@ -453,11 +453,12 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
   t1 = 0.
   t2 = 0.
   t3 = 0.
+  sum_num_particles = 0
   for n in range(N):
     # print N-n
     delta_rot = delta_rot*zoom
     delta_trans = delta_trans*zoom
-    tau = (delta_trans/delta_desired_trans)**(1./1.) # if initial err is small can use this otherway use the below one
+    tau = (delta_trans/delta_desired_trans)**(1.5/1.) # if initial err is small can use this otherway use the below one
     # tau = (delta_trans/delta_desired_trans)**(2./1.)
     
     # Sample new set of particles based on from previous region and M
@@ -481,11 +482,13 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     V = Region(pruned_particles,delta_rot,delta_trans)
     if visualize:
       Visualize(visualize_mesh,particles,measurements)
+    sum_num_particles += len(pruned_particles)
     # raw_input()
     # print "delta_prv",  sigma
   # print 't1 _ EVEN density', t1
-  # print 't2 _ UPDATE probability', t2
+  print 't2 _ UPDATE probability', t2
   # print 't3 _ PRUNE particles', t3
+  print 'Total particle', sum_num_particles
   new_set_of_particles = EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeightsB(mesh,sorted_face,new_set_of_particles,measurements,pos_err,nor_err,tau)
   return new_set_of_particles, new_weights
