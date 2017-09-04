@@ -494,11 +494,10 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
   return new_set_of_particles, new_weights
 
 
-def GenerateMeasurements(mesh,pos_err,nor_err,num_measurements):
-  ## Generate random points on obj surfaces
+def GenerateMeasurementsTriangleSampling(mesh,pos_err,nor_err,num_measurements):
+  ## Generate random points on obj surfaces using triangle sampling
   # For individual triangle sampling uses this method:
   # http://mathworld.wolfram.com/TrianglePointPicking.html
-
   # # len(mesh.faces) float array of the areas of each face of the mesh
   # area = mesh.area_faces
   # # total area (float)
@@ -542,6 +541,43 @@ def GenerateMeasurements(mesh,pos_err,nor_err,num_measurements):
   point_errs = np.asarray([np.random.normal(0.,np.sqrt(3)*pos_err)*random_vec/np.linalg.norm(random_vec) for random_vec in random_vecs])
   noisy_points = copy.deepcopy(samples) + point_errs
 
+
+  noisy_normals = [np.dot(tr.rotation_matrix(np.random.normal(0.,nor_err),np.cross(np.random.uniform(-1,1,3),n))[:3,:3],n) for n in normals]
+  noisy_normals = np.asarray([noisy_n/np.linalg.norm(noisy_n) for noisy_n in noisy_normals])
+
+  dist = [np.linalg.norm(point_err) for point_err in point_errs]
+  alpha = [np.arccos(np.dot(noisy_normals[i],normals[i])) for i in range(len(normals))]
+## not correct alpha err!!
+  # print np.sqrt(np.cov(dist))
+  # print np.sqrt(np.cov(alpha))
+  measurements = [[noisy_points[i],noisy_normals[i]] for i in range(num_measurements)]
+  return measurements #note that the normals here are sampled on obj surfaces
+
+
+def GenerateMeasurementsRayTracing(mesh,pos_err,nor_err,num_measurements):
+  ## Generate random points on obj surfaces using ray tracing
+  samples = []
+  normals = []
+
+  z_axis = np.array([0.,0.,1.])
+  origin = mesh.centroid + np.array([0,0,0.1])
+  print "Center of the sphere: ", origin
+  while len(samples) < num_measurements:
+    rand_direction = np.dot(tr.random_rotation_matrix()[:3,:3],z_axis)
+    if np.dot(rand_direction,z_axis) >= -0.001: # ignore faces pointing downwards the table
+      if mesh.ray.intersects_any([origin],[rand_direction])[0]:
+        intersects = mesh.ray.intersects_location([origin],[rand_direction])
+        dist = [np.linalg.norm(intersect_point-origin) for intersect_point in intersects[0]]
+        max_dist_idx = dist.index(max(dist))
+        sample = intersects[0][max_dist_idx]
+        normal = mesh.face_normals[intersects[2][max_dist_idx]]
+        samples.append(sample)
+        normals.append(normal)
+  
+  ## Transform points and add noise
+  random_vecs = np.random.uniform(-1,1,(num_measurements,3))
+  point_errs = np.asarray([np.random.normal(0.,np.sqrt(3)*pos_err)*random_vec/np.linalg.norm(random_vec) for random_vec in random_vecs])
+  noisy_points = copy.deepcopy(samples) + point_errs
 
   noisy_normals = [np.dot(tr.rotation_matrix(np.random.normal(0.,nor_err),np.cross(np.random.uniform(-1,1,3),n))[:3,:3],n) for n in normals]
   noisy_normals = np.asarray([noisy_n/np.linalg.norm(noisy_n) for noisy_n in noisy_normals])

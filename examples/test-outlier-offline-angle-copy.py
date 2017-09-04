@@ -96,12 +96,12 @@ mesh = trimesh.creation.box(extents)
 pos_err = 2e-3
 nor_err = 5./180.0*np.pi
 num_inliers = 10
-inliers = ptcl.GenerateMeasurements(mesh,pos_err,nor_err,num_inliers)
+inliers = ptcl.GenerateMeasurementsRayTracing(mesh,pos_err,nor_err,num_inliers)
 
 pos_err_outlier = 50e-3
 nor_err_outlier = 50./180.0*np.pi
-num_outliers = 5
-outliers = ptcl.GenerateMeasurements(mesh,pos_err_outlier,nor_err_outlier,num_outliers)
+num_outliers = 0
+outliers = ptcl.GenerateMeasurementsRayTracing(mesh,pos_err_outlier,nor_err_outlier,num_outliers)
 
 measurements = copy.deepcopy(inliers + outliers)
   
@@ -118,6 +118,8 @@ for d in measurements:
   sphere.apply_transform(TF)
   show+=sphere
 show.show()
+
+quit()
 
 # Uncertainty & params
 sigma0 = np.diag([0.0025, 0.0025,0.0025,1.,1.,1.],0)
@@ -144,7 +146,7 @@ all_measurements_transf =  RunScalingSeries(mesh,sorted_face, ptcls0, measuremen
 t0 = time.time()
 # RANSAC
 n = 5  #  the minimum number of data values required to fit the model
-k = 30 # the maximum number of iterations allowed in the algorithm
+k = 50 # the maximum number of iterations allowed in the algorithm
 threshold = 3.  # a threshold value for determining when a data point fits a model
 d = 7  # the number of good data values required to assert that a model fits well to data
 ransac_transformation, ransac_score, ransac_inliers_idx = RansacParticle(n,k,threshold,d,mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
