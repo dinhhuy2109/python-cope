@@ -58,13 +58,38 @@ def normal_hashing(obj,num_random_unit,plot_histogram):
   return mesh_w_sorted_dict # A list [[sorted_face_idx,angle],ref_axis]
 
 
-extents = [0.05,0.02,0.34]
-woodstick = trimesh.creation.box(extents)
-complicated_obj = trimesh.load_mesh('featuretype.STL')
+# extents = [0.05,0.02,0.34]
+# woodstick = trimesh.creation.box(extents)
+# mesh_w_dict = normal_hashing(woodstick,10,plot_histogram=True)
+# pickle.dump(mesh_w_dict, open('woodstick_w_dict.p', 'wb'))
+
+# complicated_obj = trimesh.load_mesh('featuretype.STL')
 # mesh_w_dict = normal_hashing(complicated_obj,50,plot_histogram=True)
-mesh_w_dict = normal_hashing(woodstick,10,plot_histogram=True)
-pickle.dump(mesh_w_dict, open('woodstick_w_dict.p', 'wb'))
-# raw_input()
+
+# back = trimesh.load_mesh('Rack1.ply')
+# mesh_w_dict = normal_hashing(back,100,plot_histogram=True)
+# save = raw_input('Save this? y/n ')
+# if save == 'y':
+#   pickle.dump(mesh_w_dict, open('back_w_dict.p', 'wb'))
+#   print 'Saved'
+# else:
+#   print 'Discarded'
+
+
+cash_register = trimesh.load_mesh('cash_register.ply')
+mesh_w_dict = normal_hashing(cash_register,100,plot_histogram=True)
+save = raw_input('Save this? y/n ')
+if save == 'y':
+  pickle.dump(mesh_w_dict, open('cash_register_w_dict.p', 'wb'))
+  print 'Saved'
+else:
+  print 'Discarded'
+
+
+
+
+
+
 
 
 

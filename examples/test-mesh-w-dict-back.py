@@ -7,8 +7,8 @@ import transformation as tr
 import ParticleLib_offlineangle as ptcl
 import pickle
 import copy
-import time
 import IPython
+import time
 
 def generate_measurements(mesh,pos_err,nor_err,num_measurements):
   ## Generate random points on obj surfaces
@@ -71,26 +71,19 @@ def generate_measurements(mesh,pos_err,nor_err,num_measurements):
   return measurements #note that the normals here are sampled on obj surfaces
 
 
-# pkl_file = open('mesh_w_dict.p', 'rb')
-# mesh_w_dict = pickle.load(pkl_file)
-# pkl_file.close()
 
-# mesh = trimesh.load_mesh('featuretype.STL')
+mesh = trimesh.load_mesh('cash_register.ply')
 
-pkl_file = open('woodstick_w_dict.p', 'rb')
+pkl_file = open('cash_register_w_dict.p', 'rb')
 sorted_face = pickle.load(pkl_file)
 pkl_file.close()
-
-# extents = [0.05,0.02,0.34]
-extents = [0.05,0.1,0.2]
-mesh = trimesh.creation.box(extents)
 
 # Measurements' Errs
 pos_err = 2e-3
 nor_err = 5./180.0*np.pi
 
-num_measurements = 9
-measurements = generate_measurements(mesh,pos_err,nor_err,num_measurements)
+num_measurements = 15
+measurements = ptcl.GenerateMeasurementsTriangleSampling(mesh,pos_err,nor_err,num_measurements)
 
 # Visualize mesh and measuarement
 color = trimesh.visual.random_color()
@@ -106,10 +99,8 @@ for d in measurements:
   show+=sphere
 show.show()
 
-
-#
-# sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
-sigma0 = np.diag([0.0025, 0.0025,0.0025,1.6,1.6,1.6],0)
+sigma0 = np.diag([0.0009, 0.0009,0.0009,0.09,0.09,0.09],0) #trans,rot
+# sigma0 = np.diag([0.0009, 0.0009,0.0009,1.,1.,1.],0)
 sigma_desired = 0.25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 
 cholsigma0 = np.linalg.cholesky(sigma0).T
@@ -125,7 +116,6 @@ dim = 6 # 6 DOFs
 prune_percentage = 0.8
 ptcls0 = [np.eye(4)]
 M = 10
-
 
 t0 = time.time()
 # Run scaling series
@@ -145,8 +135,8 @@ for i in range(len(list_particles)):
     acum_weight += weights[i]
 estimated_particle = acum_vec*(1./acum_weight)
 transf = SE3.VecToTran(estimated_particle)
-print "Resulting estimation:\n", transf
 print "Real transformation\n", T
+print "Resulting estimation:\n", transf
 
 
 t0 = time.time()
@@ -168,4 +158,4 @@ for i in range(len(list_particles)):
 estimated_particle = acum_vec*(1./acum_weight)
 transf = SE3.VecToTran(estimated_particle)
 print "Resulting estimation:\n", transf
-print "Real transformation\n", T
+# print "Real transformation\n", T

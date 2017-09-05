@@ -163,10 +163,25 @@ def ComputeNormalizedWeightsB(mesh,sorted_face,particles,measurements,pos_err,no
     for d in D:
       d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
       d[1] = np.dot(T[:3,:3],d[1])
+    total_energy = sum([FindminimumDistanceMeshOriginal(mesh,sorted_face,measurement,pos_err,nor_err)**2 for measurement in D])
+    new_weights[i] = (np.exp(-0.5*total_energy/tau))
+  # print total_energy
+  return normalize(new_weights)
+
+def ComputeNormalizedWeightsA(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau):
+  num_particles = len(particles)
+  new_weights = np.zeros(num_particles)
+  for i in range(len(particles)):
+    T = np.linalg.inv(particles[i])
+    D = copy.deepcopy(measurements)
+    for d in D:
+      d[0] = np.dot(T[:3,:3],d[0]) + T[:3,3]
+      d[1] = np.dot(T[:3,:3],d[1])
     total_energy = sum([FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err)**2 for measurement in D])
     new_weights[i] = (np.exp(-0.5*total_energy/tau))
   # print total_energy
   return normalize(new_weights)
+
 
 def TestOfflineAngle(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau):
   num_particles = len(particles)
@@ -482,15 +497,81 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     V = Region(pruned_particles,delta_rot,delta_trans)
     if visualize:
       Visualize(visualize_mesh,particles,measurements)
-    sum_num_particles += len(pruned_particles)
+    sum_num_particles += len(particles)
     # raw_input()
     # print "delta_prv",  sigma
   # print 't1 _ EVEN density', t1
-  print 't2 _ UPDATE probability', t2
+  # print 't2 _ UPDATE probability', t2
   # print 't3 _ PRUNE particles', t3
   print 'Total particle', sum_num_particles
   new_set_of_particles = EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeightsB(mesh,sorted_face,new_set_of_particles,measurements,pos_err,nor_err,tau)
+  return new_set_of_particles, new_weights
+
+def ScalingSeriesA(mesh,sorted_face, particles0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage = 0.6,dim = 6, visualize = False):
+  """
+  @type  V0:  ParticleFilterLib.Region
+  @param V0:  initial uncertainty region
+  @param  D:  a list of measurements [p,n,o_n,o_p] p is the contacted point, n is the approaching vector (opposite to normal)
+  @param  M:  the no. of particles per neighborhood
+  @param delta_desired: terminal value of delta
+  @param dim: dimension of the state space (6 DOFs)
+  """ 
+  zoom = 2**(-1./6.)
+  delta_rot = np.max(np.linalg.cholesky(sigma0[3:,3:]).T)
+  delta_trans = np.max(np.linalg.cholesky(sigma0[:3,:3]).T)
+  delta_desired_rot = np.max(np.linalg.cholesky(sigma_desired[3:,3:]).T)
+  delta_desired_trans = np.max(np.linalg.cholesky(sigma_desired[:3,:3]).T)
+
+  N_rot  = np.log2(Volume(delta_rot,3)/Volume(delta_desired_rot,3))
+  N_trans = np.log2(Volume(delta_trans,3)/Volume(delta_desired_trans,3))
+  N = int(np.round(max(N_rot,N_trans)))
+
+  # N = int(np.round(np.log2(volume_0/volume_desired)))
+  # print N
+  particles = particles0
+  V = Region(particles,delta_rot,delta_trans)
+  t1 = 0.
+  t2 = 0.
+  t3 = 0.
+  sum_num_particles = 0
+  for n in range(N):
+    # print N-n
+    delta_rot = delta_rot*zoom
+    delta_trans = delta_trans*zoom
+    tau = (delta_trans/delta_desired_trans)**(1.5/1.) # if initial err is small can use this otherway use the below one
+    # tau = (delta_trans/delta_desired_trans)**(2./1.)
+    
+    # Sample new set of particles based on from previous region and M
+    t0 = time.time()
+    particles = EvenDensityCover(V,M)
+    # print "len of new generated particles ", len(particles)
+    # print 'tau ', tau
+    t1 += time.time() - t0
+    t0 = time.time()
+    # haha = TestOfflineAngle(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
+    # Compute normalized weights
+    weights = ComputeNormalizedWeightsA(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau)
+    # print "weights after normalizing",  weights
+    t2 += time.time() - t0 
+    t0 = time.time()
+    # Prune based on weights
+    pruned_particles = Pruning_old(particles,weights,prune_percentage)
+    t3 += time.time() - t0     
+    # print 'No. of particles, after pruning:', len(pruned_particles)
+    # Create a new region from the set of particle left after pruning
+    V = Region(pruned_particles,delta_rot,delta_trans)
+    if visualize:
+      Visualize(visualize_mesh,particles,measurements)
+    sum_num_particles += len(particles)
+    # raw_input()
+    # print "delta_prv",  sigma
+  # print 't1 _ EVEN density', t1
+  # print 't2 _ UPDATE probability', t2
+  # print 't3 _ PRUNE particles', t3
+  print 'Total particle', sum_num_particles
+  new_set_of_particles = EvenDensityCover(V,M)
+  new_weights = ComputeNormalizedWeightsA(mesh,sorted_face,new_set_of_particles,measurements,pos_err,nor_err,tau)
   return new_set_of_particles, new_weights
 
 
