@@ -346,7 +346,7 @@ def Pruning_old(list_particles, weights,prune_percentage):
 
 def Visualize(mesh,list_particles=[],D=[]):
   show_ = mesh.copy()
-  show_.apply_transform(list_particles[-1])
+  # show_.apply_transform(list_particles[-1])
   color = np.array([  21, 51,  252, 255])
   for face in mesh.faces:
     mesh.visual.face_colors[face] = color
@@ -359,15 +359,15 @@ def Visualize(mesh,list_particles=[],D=[]):
     vec = np.cross(d[1],np.array([0,0,1]))
     TF2[:3,:3] = SE3lib.VecToRot(angle*vec)
     TF2[:3,3] = d[0] + np.dot(SE3lib.VecToRot(angle*vec),np.array([0,0,0.1/2.]))
-    cyl = trm.creation.cylinder(0.001,0.1)
-    cyl.apply_transform(TF2)
-    show_ += cyl
+    # cyl = trm.creation.cylinder(0.001,0.1)
+    # cyl.apply_transform(TF2)
+    # show_ += cyl
     sphere.apply_transform(TF)
     show_ += sphere
-  for z in range(len(list_particles)-1):
-    new_mesh = mesh.copy()
-    new_mesh.apply_transform(list_particles[z])
-    show_ += new_mesh
+  # for z in range(len(list_particles)-1):
+  new_mesh = mesh.copy()
+  new_mesh.apply_transform(list_particles[0])
+  show_ += new_mesh
   show_.show()
   return True
 
@@ -473,8 +473,8 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     # print N-n
     delta_rot = delta_rot*zoom
     delta_trans = delta_trans*zoom
-    tau = (delta_trans/delta_desired_trans)**(1.5/1.) # if initial err is small can use this otherway use the below one
-    # tau = (delta_trans/delta_desired_trans)**(2./1.)
+    # tau = (delta_trans/delta_desired_trans)**(1.5/1.) # if initial err is small can use this otherway use the below one
+    tau = (delta_trans/delta_desired_trans)**(2./1.)
     
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
@@ -539,8 +539,8 @@ def ScalingSeriesA(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     # print N-n
     delta_rot = delta_rot*zoom
     delta_trans = delta_trans*zoom
-    tau = (delta_trans/delta_desired_trans)**(1.5/1.) # if initial err is small can use this otherway use the below one
-    # tau = (delta_trans/delta_desired_trans)**(2./1.)
+    # tau = (delta_trans/delta_desired_trans)**(1.5/1.) # if initial err is small can use this otherway use the below one
+    tau = (delta_trans/delta_desired_trans)**(2./1.)
     
     # Sample new set of particles based on from previous region and M
     t0 = time.time()
@@ -562,7 +562,7 @@ def ScalingSeriesA(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     # Create a new region from the set of particle left after pruning
     V = Region(pruned_particles,delta_rot,delta_trans)
     if visualize:
-      Visualize(visualize_mesh,particles,measurements)
+      Visualize(mesh,particles,measurements)
     sum_num_particles += len(particles)
     # raw_input()
     # print "delta_prv",  sigma

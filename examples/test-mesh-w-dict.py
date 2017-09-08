@@ -77,6 +77,10 @@ def generate_measurements(mesh,pos_err,nor_err,num_measurements):
 
 # mesh = trimesh.load_mesh('featuretype.STL')
 
+
+
+
+
 pkl_file = open('woodstick_w_dict.p', 'rb')
 sorted_face = pickle.load(pkl_file)
 pkl_file.close()
@@ -106,11 +110,10 @@ for d in measurements:
   show+=sphere
 show.show()
 
-
-#
-# sigma0 = np.diag([0.0009, 0.0009,0.0009,0.009,0.009,0.009],0) #trans,rot
-sigma0 = np.diag([0.0025, 0.0025,0.0025,1.6,1.6,1.6],0)
-sigma_desired = 0.25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
+sigma0 = np.diag([0.0025, 0.0025,0.0025,0.25,0.25,0.25],0) #trans,rot
+# sigma0 = np.diag([0.0025, 0.0025,0.0025,1.6,1.6,1.6],0)
+# sigma0 = np.diag([0.0025, 0.0025,0.0025,1.,1.,1.],0)
+sigma_desired = np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 
 cholsigma0 = np.linalg.cholesky(sigma0).T
 uniformsample = np.random.uniform(-1,1,size = 6)
