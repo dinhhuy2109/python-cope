@@ -84,21 +84,18 @@ time_our = []
 time_origin = []
 total_particle_our = []
 total_perticle_origin = []
-for i in range(1):
-
-  pkl_file = open('woodstick_w_dict.p', 'rb')
+for i in range(10):
+  mesh = trimesh.load_mesh('cash_register_half.ply')
+  mesh.apply_translation(-mesh.centroid)
+  pkl_file = open('cash_register_w_dict.p', 'rb')
   sorted_face = pickle.load(pkl_file)
   pkl_file.close()
-
-  # extents = [0.05,0.02,0.34]
-  extents = [0.05,0.1,0.2]
-  mesh = trimesh.creation.box(extents)
 
   # Measurements' Errs
   pos_err = 2e-3
   nor_err = 5./180.0*np.pi
 
-  num_measurements = 9
+  num_measurements = 10
   measurements = generate_measurements(mesh,pos_err,nor_err,num_measurements)
 
   # # Visualize mesh and measuarement
@@ -164,8 +161,9 @@ for i in range(1):
   t0 = time.time()
   # Run scaling series
   list_particles, weights = ptcl.ScalingSeriesB(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+  print time.time() - t0
   time_origin.append(time.time() - t0)
-
+  
   maxweight = weights[0]
   for w in weights:
     if w > maxweight:
@@ -184,6 +182,6 @@ for i in range(1):
   print "Resulting estimation:\n", transf
   # print "Real transformation\n", T
 
-pickle.dump([time_our,time_origin],open('time_.exp1','wb'))
-pickle.dump([T_real,T_our,T_origin],open('T_.exp1','wb'))
-IPython.embed()
+# pickle.dump([time_our,time_origin],open('time_register3.exp1','wb'))
+# pickle.dump([T_real,T_our,T_origin],open('T_register3.exp1','wb'))
+# IPython.embed()

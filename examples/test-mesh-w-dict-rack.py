@@ -84,21 +84,19 @@ time_our = []
 time_origin = []
 total_particle_our = []
 total_perticle_origin = []
-for i in range(1):
-
-  pkl_file = open('woodstick_w_dict.p', 'rb')
+for i in range(5):
+  
+  mesh = trimesh.load_mesh('Rack1.ply')
+  mesh.apply_translation(-mesh.centroid)
+  pkl_file = open('rack_w_dict.p', 'rb')
   sorted_face = pickle.load(pkl_file)
   pkl_file.close()
-
-  # extents = [0.05,0.02,0.34]
-  extents = [0.05,0.1,0.2]
-  mesh = trimesh.creation.box(extents)
 
   # Measurements' Errs
   pos_err = 2e-3
   nor_err = 5./180.0*np.pi
 
-  num_measurements = 9
+  num_measurements = 15
   measurements = generate_measurements(mesh,pos_err,nor_err,num_measurements)
 
   # # Visualize mesh and measuarement
@@ -118,7 +116,7 @@ for i in range(1):
   sigma0 = np.diag([0.0025, 0.0025,0.0025,0.25,0.25,0.25],0) #trans,rot
   # sigma0 = np.diag([0.0025, 0.0025,0.0025,1.6,1.6,1.6],0)
   # sigma0 = np.diag([0.0025, 0.0025,0.0025,1.,1.,1.],0)
-  sigma_desired = np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
+  sigma_desired = .25*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 
   cholsigma0 = np.linalg.cholesky(sigma0).T
   uniformsample = np.random.uniform(-1,1,size = 6)
@@ -132,7 +130,7 @@ for i in range(1):
   dim = 6 # 6 DOFs
   prune_percentage = 0.8
   ptcls0 = [np.eye(4)]
-  M = 6
+  M = 8
 
 
   t0 = time.time()
@@ -164,8 +162,9 @@ for i in range(1):
   t0 = time.time()
   # Run scaling series
   list_particles, weights = ptcl.ScalingSeriesB(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+  print time.time() - t0
   time_origin.append(time.time() - t0)
-
+  
   maxweight = weights[0]
   for w in weights:
     if w > maxweight:
@@ -184,6 +183,6 @@ for i in range(1):
   print "Resulting estimation:\n", transf
   # print "Real transformation\n", T
 
-pickle.dump([time_our,time_origin],open('time_.exp1','wb'))
-pickle.dump([T_real,T_our,T_origin],open('T_.exp1','wb'))
+pickle.dump([time_our,time_origin],open('time_back2.exp1','wb'))
+pickle.dump([T_real,T_our,T_origin],open('T_back2.exp1','wb'))
 IPython.embed()
