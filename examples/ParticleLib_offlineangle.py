@@ -200,6 +200,49 @@ def TestOfflineAngle(mesh,sorted_face,particles,measurements,pos_err,nor_err,tau
     # raw_input()
   return True
 
+# def FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err):
+#     ref_vec = sorted_face[2]
+#     sorted_angle = sorted_face[1]
+#     face_idx = sorted_face[0]
+#     angle =  np.arccos(np.dot(measurement[1],ref_vec))
+#     idx = bisect.bisect_right(sorted_angle,angle)
+#     if idx >= len(sorted_angle):
+#       up_bound = idx
+#     else:
+#       up_bound = idx + bisect.bisect_right(sorted_angle[idx:],sorted_angle[idx]+sorted_angle[idx]-angle+nor_err)
+#     if idx == 0:
+#       low_bound = 0
+#     else:
+#       low_bound = bisect.bisect_left(sorted_angle[:idx],sorted_angle[idx-1]-(sorted_angle[idx-1]-angle)-nor_err)-1
+#     dist = []
+#     for i in range(low_bound,up_bound):
+#         A,B,C = mesh.faces[face_idx[i]]
+#         dist.append(CalculateDistanceFace([mesh.vertices[A],mesh.vertices[B],mesh.vertices[C],mesh.face_normals[face_idx[i]]],measurement,pos_err,nor_err))
+#     # print 'DIst',dist , ' low up bound', face_idx[low_bound:up_bound]
+#     # print 'min', min(dist)**2
+#     # IPython.embed()
+#     return min(dist)
+
+# def FindminimumDistanceMeshOriginal(mesh,sorted_face,measurement,pos_err,nor_err):
+#     dist = []
+#     for i in range(len(mesh.faces)):
+#         A,B,C = mesh.faces[i]
+#         dist.append(CalculateDistanceFace([mesh.vertices[A],mesh.vertices[B],mesh.vertices[C],mesh.face_normals[i]],measurement,pos_err,nor_err))
+#     # print 'Dist', dist, 'IDX', dist.index(min(dist))
+#     return min(dist)
+
+# def CalculateDistanceFace(face,measurement,pos_err,nor_err):
+#     p1,p2,p3,nor = face
+#     pos_measurement = measurement[0]
+#     nor_measurement = measurement[1]
+#     norm = lambda x: np.linalg.norm(x)
+#     inner = lambda a, b: np.inner(a,b)
+#     diff_distance   = norm(inner((pos_measurement-p1), nor)/norm(nor))
+#     # print 'dist d', diff_distance
+#     diff_angle      = np.arccos(inner(nor, nor_measurement)/norm(nor)/norm(nor_measurement))
+#     # print 'dist angle', diff_angle
+#     dist = np.sqrt(diff_distance**2/pos_err**2+diff_angle**2/nor_err**2)
+#     return dist
 
 def FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err):
     ref_vec = sorted_face[2]
@@ -234,15 +277,18 @@ def FindminimumDistanceMeshOriginal(mesh,sorted_face,measurement,pos_err,nor_err
 
 def CalculateDistanceFace(face,measurement,pos_err,nor_err):
     p1,p2,p3,nor = face
+    tri = [[p1,p2,p3]]
     pos_measurement = measurement[0]
     nor_measurement = measurement[1]
     norm = lambda x: np.linalg.norm(x)
     inner = lambda a, b: np.inner(a,b)
-    diff_distance   = norm(inner((pos_measurement-p1), nor)/norm(nor))
+    closest_point = trm.triangles.closest_point(tri,[pos_measurement])
+    diff_distance = norm(closest_point-pos_measurement)
     # print 'dist d', diff_distance
     diff_angle      = np.arccos(inner(nor, nor_measurement)/norm(nor)/norm(nor_measurement))
     # print 'dist angle', diff_angle
     dist = np.sqrt(diff_distance**2/pos_err**2+diff_angle**2/nor_err**2)
+    # IPython.embed()
     return dist
 
 def CalculateMahaDistanceFace(face,d,i):

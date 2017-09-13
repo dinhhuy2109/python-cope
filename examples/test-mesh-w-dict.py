@@ -118,7 +118,7 @@ for i in range(1):
   sigma0 = np.diag([0.0025, 0.0025,0.0025,0.25,0.25,0.25],0) #trans,rot
   # sigma0 = np.diag([0.0025, 0.0025,0.0025,1.6,1.6,1.6],0)
   # sigma0 = np.diag([0.0025, 0.0025,0.0025,1.,1.,1.],0)
-  sigma_desired = np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
+  sigma_desired = 9*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 
   cholsigma0 = np.linalg.cholesky(sigma0).T
   uniformsample = np.random.uniform(-1,1,size = 6)
@@ -159,13 +159,17 @@ for i in range(1):
   T_our.append(transf)
   print "Resulting estimation:\n", transf
   print "Real transformation\n", T
-
+  # print 'Dist trans:'
+  # print np.linalg.norm(transf[:3,3]-T[:3,3])
+  # print 'Dist rot:'
+  # print np.linalg.norm(SE3.RotToVec(np.dot(np.linalg.inv(transf[:3,:3]),T[:3,:3])))
 
   t0 = time.time()
   # Run scaling series
   list_particles, weights = ptcl.ScalingSeriesB(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+  print time.time() - t0
   time_origin.append(time.time() - t0)
-
+  
   maxweight = weights[0]
   for w in weights:
     if w > maxweight:
@@ -184,6 +188,6 @@ for i in range(1):
   print "Resulting estimation:\n", transf
   # print "Real transformation\n", T
 
-pickle.dump([time_our,time_origin],open('time_.exp1','wb'))
-pickle.dump([T_real,T_our,T_origin],open('T_.exp1','wb'))
-IPython.embed()
+# pickle.dump([time_our,time_origin],open('time_.exp1','wb'))
+# pickle.dump([T_real,T_our,T_origin],open('T_.exp1','wb'))
+# IPython.embed()
