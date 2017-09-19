@@ -1,9 +1,7 @@
 COVARIANCE-BASED POSE ESTIMATION (COPE)
 ====================================
 
-Author: Huy Nguyen
-
-Email:  huy.nguyendinh09@gmail.com
+Author: [Huy Nguyen](https://dinhhuy2109.github.io)
 
 This is cope, a library for working with uncertainty in pose estimation. It includes:
 
