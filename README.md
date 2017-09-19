@@ -5,26 +5,29 @@ Author: Huy Nguyen
 
 Email:  huy.nguyendinh09@gmail.com
 
-- This library includes tools for working in **the space of rigid-body
-  motions SE(3) and the space of rotation group SO(3)**, including
+This is cope, a library for working with uncertainty in pose estimation. It includes:
+
+- **SO(3), SE(3) funionalities**, including
   many mathematic operators using Lie Group and Lie algebra.
 
-- It also includes implementation of **Predicting the covariance of X
-  in the AX=XB**.
+- [**Predicting the covariance of X
+  in the AX=XB**](https://arxiv.org/pdf/1706.03498).
 
-- Additionally, this package includes tools for manipulating uncertainty of three-dimensional poses: **Propagating and fusing uncertainty in SE(3)** (implemented by following ""Timothy D Barfoot and Paul T Furgale, Associating Uncertainty with Three-Dimensional Poses for use in Estimation Problems""). In addition, we extended this to the case where poses is seperated into rotation and translation. 
-
-Developing: Reducing uncertainty of object pose via touch sensing using particle filter. (best next touch & pose estimation) 
+- **Touch-based estimation in cluttered environment using particle filter**.
 
 Requirements and Installation
 -----------------------------
 
-- Clone this folder, then go to that repository and run
+- cope requires Python >= 2.7. If you do not already have a Python environment configured on your computer, please see the instructions for installing the full [scientific Python stack](https://scipy.org/install.html).
 
+- To install the latest version of cope:
+    
+   $ git clone https://github.com/dinhhuy2109/python-cope.git
+   $ cd python-cope
    $ sudo python setup.py install
 
 
 Examples
 ------------
 
-- Please run the test files in the example folder.
+See the [examples folder](https://github.com/dinhhuy2109/python-cope/tree/master/examples) for some examples.
