@@ -27,7 +27,7 @@ Requirements and Installation
 ```
 
 
-Examples
+Basic usages and examples
 ------------
 
-See the [examples folder](https://github.com/dinhhuy2109/python-cope/tree/master/examples) for some examples.
+See the [examples folder](https://github.com/dinhhuy2109/python-cope/tree/master/examples) for more details.
