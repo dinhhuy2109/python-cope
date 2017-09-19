@@ -26,7 +26,7 @@ Requirements and Installation
 ```
 
 
-Basic usages and examples
+Basic usage and examples
 ------------
 
-See the [wiki page](https://github.com/dinhhuy2109/python-cope/wiki) for more details.
+Please see the [wiki page](https://github.com/dinhhuy2109/python-cope/wiki) for more details.
