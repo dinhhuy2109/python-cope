@@ -23,7 +23,7 @@ import math
 import numpy as np
 import random
 
-import COPE.SE3UncertaintyLib as SE3
+import cope.SE3lib as SE3
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
@@ -263,7 +263,7 @@ def IterativeSolutionTrans(beta, alpha, ta, tb, Rx, sigmaRa, sigmaRb, sigmata, s
         i = i+1
     # sigmatx = np.linalg.inv(U - sum1)
     if i < max_iter:
-        return tx, np.linalg.inv(U - sum1), i
+      return tx, np.linalg.inv(U - sum1), i
     else:
         return tx, np.linalg.inv(U - sum1), i # False
 

@@ -19,7 +19,7 @@
 # python-cope. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy  as np
-import SE3UncertaintyLib as SE3lib
+import SE3lib
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 

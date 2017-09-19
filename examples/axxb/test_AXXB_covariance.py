@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 import copy
-# import criros
 import math
 import numpy as np
 import random
-# import tf.transformations as tr
 import pickle
-import COPE.SE3UncertaintyLib as SE3
-import COPE.axxbCovariance as axxb
+import cope.SE3lib as SE3
+import cope.axxbcovariance as axxb
+import matplotlib.pyplot as plt
 
-import IPython
-
-# Read files
+# Read data files
 filename = "data/pattern_tfs"
 pattern_tfs =  pickle.load(open( filename, "rb" ) )
 filename = "data/robot_tfs"
@@ -81,7 +78,6 @@ avg_est_sigmaRx = np.average(sigmaRx_list, axis=0)
 print "Est avg sigma\n", np.average(sigmaRx_list, axis=0)
 
 
-
 xitx_list = [tx - avg_tx for tx in txlist]
 real_sigmatx_using_avg = np.cov(np.transpose(xitx_list))
 print "Real sigmatx, using avg\n ", real_sigmatx_using_avg
@@ -93,3 +89,4 @@ print "Avg est sigmatx:\n ", np.average(sigmatx_list,axis = 0)
 axxb.VisualizeRealEstCov(np.real(real_sigmaRx_using_avg),avg_est_sigmaRx,-0.01*0.75,0.01*0.75,-0.01*0.75,0.01*0.75,'rot')
 axxb.VisualizeRealEstCov(real_sigmatx_using_avg,avg_est_sigmatx,-0.01*0.75,0.01*0.75,-0.01*0.75,0.01*0.75,'trans')
 
+plt.show(True)
