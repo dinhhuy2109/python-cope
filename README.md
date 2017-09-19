@@ -9,8 +9,8 @@ This is cope, a library for working with uncertainty in pose estimation. It incl
 
 - **SO(3), SE(3) functionalities**.
 
-- [**Predicting the covariance of X
-  in the AX=XB**](https://arxiv.org/pdf/1706.03498).
+- **Predicting the covariance of X
+  in the AX=XB**.
 
 - **Touch-based estimation in cluttered environment using particle filter**.
 
