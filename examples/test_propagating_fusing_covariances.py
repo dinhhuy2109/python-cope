@@ -1,5 +1,5 @@
 import numpy  as np
-import COPE
+import cope
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
@@ -24,22 +24,22 @@ sigma4 = np.diag([tiny,tiny,tiny,tiny,tiny,tiny],0)
 
 
 
-T12, sigma12 = COPE.Propagating(T1,sigma1,T2,sigma2)
+T12, sigma12 = cope.Propagating(T1,sigma1,T2,sigma2)
 
-T23, sigma23 = COPE.Propagating(T12,sigma12,T3,sigma3)
+T23, sigma23 = cope.Propagating(T12,sigma12,T3,sigma3)
 
-T34, sigma34 = COPE.Propagating(T23,sigma23,T4,sigma4)
+T34, sigma34 = cope.Propagating(T23,sigma23,T4,sigma4)
 print('Propagation took %.4f seconds' % (time.time() - starttime))
 
 Tv = T34 
 Tv[:3,3] = Tv[:3,3] + np.array([0.001,0.002,-0.001])
 sigmav = np.diag([tiny,tiny,tiny,0.01,0.2,tiny])
 
-Te,sigmae,iters = COPE.Fusing([T34,Tv],[sigma34,sigmav], maxiterations=10, retiter=True)
+Te,sigmae,iters = cope.Fusing([T34,Tv],[sigma34,sigmav], maxiterations=10, retiter=True)
 
 print('Took %.4f seconds and %d iterations' % (time.time() - starttime, iters))
 
-COPE.Visualize([T12,T34,Te],[sigma12, sigma34,sigmae],100)
+cope.Visualize([T12,T34,Te],[sigma12, sigma34,sigmae],100)
 # visualize(T,sigma,100,2)
 
 
