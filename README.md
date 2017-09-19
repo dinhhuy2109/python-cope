@@ -9,8 +9,7 @@ This is cope, a library for working with uncertainty in pose estimation. It incl
 
 - **SO(3), SE(3) functionalities**.
 
-- **Predicting the covariance of X
-  in the AX=XB**.
+- **Predicting the covariance of X in the AX=XB**.
 
 - **Touch-based estimation in cluttered environment using particle filter**.
 
@@ -30,4 +29,4 @@ Requirements and Installation
 Basic usages and examples
 ------------
 
-See the [examples folder](https://github.com/dinhhuy2109/python-cope/tree/master/examples) for more details.
+See the [wiki page](https://github.com/dinhhuy2109/python-cope/wiki) for more details.
