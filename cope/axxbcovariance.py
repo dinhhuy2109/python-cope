@@ -96,7 +96,6 @@ def VisualizeCovariances(cov_rot, cov_trans, minx,maxx,miny,maxy):
   plt.ylabel(r'${\bf{\xi}}_{\bf{R} z} (rad)$',fontsize=20, labelpad=-8)  
   plt.xticks(np.arange(minx, maxx+maxx/2, (maxx-minx)/2))
   plt.yticks(np.arange(miny, maxy+maxy/2, (maxy-miny)/2))
-  plt.legend(handles=[ellip1, ellip2],loc='upper center',ncol=2, bbox_to_anchor=(0.5,1.5))
   ax.set(aspect='equal')
 
   plt.subplot(235)
@@ -160,6 +159,7 @@ def VisualizeCovariances(cov_rot, cov_trans, minx,maxx,miny,maxy):
   plt.ylabel(r'${\bf{\xi}}_{\bf{t} z}(m)$',fontsize=20, labelpad=-8)
   ax.set(aspect='equal')
   plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.8, hspace=None)
+  # plt.legend(handles=[ellip1],loc='upper center',ncol=2, bbox_to_anchor=(0.5,1.5))
   return True
 
 def VisualizeRealEstCov(cov_real, cov_est, minx,maxx,miny,maxy,param):
