@@ -37,9 +37,9 @@ pos_err = 2e-3
 nor_err = 5./180.0*np.pi
 
 sigma0 = np.diag([0.0025,0.0025,0.0025,0.25,0.25,0.25],0) #trans,rot
-sigma_desired = np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
+sigma_desired = 2*np.diag([1e-6,1e-6,1e-6,1e-6,1e-6,1e-6],0)
 
-estimate = ptcl.RunScalingSeries(mesh,angle_dict, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+estimate = ptcl.RunImprovedScalingSeries(mesh,angle_dict, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
 
 print 'Estimated transformation:\n', estimate
 print 'Real transformation:\n', real_T

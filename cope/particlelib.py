@@ -25,6 +25,7 @@ from scipy.stats import norm
 import cope.SE3lib as SE3
 import bisect
 import transformation as tr
+import random
 import time
 import copy
 import matplotlib.pyplot as plt
@@ -83,6 +84,8 @@ def EvenDensityCover(region, M):
 def normalize(weights):
   norm_weights = np.zeros(len(weights))
   sum_weights = np.sum(weights)
+  if sum_weights == 0:
+    return np.ones(len(weights))/len(weights)
   for i in range(len(weights)):
     norm_weights[i] = weights[i]/sum_weights
   return norm_weights
@@ -111,6 +114,7 @@ def ComputeNormalizedWeights(mesh,sorted_face,particles,measurements,pos_err,nor
       d[1] = np.dot(T[:3,:3],d[1])
     total_energy = sum([FindminimumDistanceMesh(mesh,sorted_face,measurement,pos_err,nor_err)**2 for measurement in D])
     new_weights[i] = (np.exp(-0.5*total_energy/tau))
+  
   return normalize(new_weights)
 
 
@@ -413,7 +417,7 @@ def NormalHashing(obj,num_random_unit,plot_histogram):
   mesh_w_sorted_dict = [face_idx,angle_list,sorted_dict[1]]
   return mesh_w_sorted_dict # A list [[sorted_face_idx,angle],ref_axis]
 
-def RunScalingSeries(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False):
+def RunImprovedScalingSeries(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False):
    list_particles, weights = ScalingSeries(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False) 
    maxweight = weights[0]
    for w in weights:
@@ -429,3 +433,91 @@ def RunScalingSeries(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M
        acum_weight += weights[i]
    estimated_particle = acum_vec*(1./acum_weight)
    return SE3.VecToTran(estimated_particle)
+
+def RunScalingSeries(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False):
+   list_particles, weights = ScalingSeriesB(mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False) 
+   maxweight = weights[0]
+   for w in weights:
+     if w > maxweight:
+       maxweight = w   
+   acum_weight = 0
+   acum_vec = np.zeros(6)
+   weight_threshold = 0.7*maxweight
+   for i in range(len(list_particles)):
+     if weights[i] > weight_threshold:
+       p = SE3.TranToVec(list_particles[i])
+       acum_vec += p*weights[i]
+       acum_weight += weights[i]
+   estimated_particle = acum_vec*(1./acum_weight)
+   return SE3.VecToTran(estimated_particle)
+
+def MeasurementFitHypothesis(hypothesis,measurement,pos_err,nor_err,mesh,sorted_face,distance_threshold):
+  d = copy.deepcopy(measurement)
+  T_inv = np.linalg.inv(hypothesis)
+  d[0] = np.dot(T_inv[:3,:3],d[0]) + T_inv[:3,3]
+  d[1] = np.dot(T_inv[:3,:3],d[1])
+  dist = FindminimumDistanceMeshOriginal(mesh,sorted_face,d,pos_err,nor_err)
+  if dist < distance_threshold:
+    return True
+  else: 
+    return False
+
+def ScoreHypothesis(hypothesis,measurements,pos_err,nor_err,mesh,sorted_face):
+  data = copy.deepcopy(measurements)
+  T_inv = np.linalg.inv(hypothesis)
+  dist = 0.
+  for d in data:
+    d[0] = np.dot(T_inv[:3,:3],d[0]) + T_inv[:3,3]
+    d[1] = np.dot(T_inv[:3,:3],d[1])
+  dist = sum([FindminimumDistanceMeshOriginal(mesh,sorted_face,d,pos_err,nor_err) for d in data])
+  score = dist/len(measurements)
+  return score
+
+def SelectRandomSubset(measurements,size,dist_angle_th):
+  if size <= 1:
+    print 'Too few!'
+    quit()
+  all_idx = range(num_measurements)
+  subset_idx = []
+  while len(subset_idx) < size and len(all_idx)>0:
+    i = random.sample(all_idx,1)[0]
+    dist_angle = [np.arccos(np.dot(measurements[i][1],measurements[idx][1])) for idx in subset_idx]
+    too_close = []
+    for k in range(len(dist_angle)):
+      if dist_angle[k] > dist_angle_th:
+        too_close.append(k) 
+    if len(too_close) < 0.5*size: 
+      subset_idx.append(i)
+    all_idx.remove(i)
+  print subset_idx
+  return subset_idx
+
+def RansacParticle(n,k,threshold,d,mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False):
+  iterations = 0
+  best_hypothesis = ptcls0
+  best_score = 999.
+  num_measurements = len(measurements)
+  while iterations < k:
+    iterations += 1
+    maybeinliers_idx = random.sample(range(num_measurements),n)
+    maybeinliers = [measurements[i] for i in maybeinliers_idx] 
+    alsoinliers = []
+    hypothesis = RunImprovedScalingSeries(mesh,sorted_face, ptcls0, maybeinliers, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+    for i in range(len(measurements)):
+      if i not in maybeinliers_idx:
+        if MeasurementFitHypothesis(hypothesis,measurements[i],pos_err,nor_err,mesh,sorted_face,threshold):
+          maybeinliers.append(measurements[i])
+          maybeinliers_idx.append(i)
+    # print maybeinliers_idx, 'len', len(maybeinliers_idx)
+    if len(maybeinliers) > d: # Maybe good hypothesis
+      # print 'Maybe good hypothesis'
+      updated_hypothesis = RunImprovedScalingSeries(mesh,sorted_face, ptcls0, maybeinliers, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False)
+      score = ScoreHypothesis(updated_hypothesis,maybeinliers,pos_err,nor_err,mesh,sorted_face)
+      # print score
+      if score < best_score:
+        best_hypothesis = updated_hypothesis
+        best_score = score
+        best_idx = maybeinliers_idx
+        if score < 1.8:
+            break
+  return best_hypothesis,best_score,best_idx
