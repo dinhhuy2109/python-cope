@@ -206,11 +206,14 @@ def Pruning_old(list_particles, weights,prune_percentage):
       pruned_list.append(list_particles[i])
   return pruned_list
 
-def Visualize(mesh,list_particles=[],D=[]):
+def Visualize(mesh,particle,D=[]):
   show_ = mesh.copy()
+  show_.apply_transform(particle)
   color = np.array([  21, 51,  252, 255])
-  for face in mesh.faces:
-    mesh.visual.face_colors[face] = color
+  for face in show_.faces:
+    show_.visual.face_colors[face] = color
+  for facet in show_.facets:
+    show_.visual.face_colors[facet] = color
   for d in D:
     sphere = trimesh.creation.icosphere(3,0.0025)
     TF = np.eye(4)
@@ -222,9 +225,6 @@ def Visualize(mesh,list_particles=[],D=[]):
     TF2[:3,3] = d[0] + np.dot(SE3.VecToRot(angle*vec),np.array([0,0,0.1/2.]))
     sphere.apply_transform(TF)
     show_ += sphere
-  new_mesh = mesh.copy()
-  new_mesh.apply_transform(list_particles[0])
-  show_ += new_mesh
   show_.show()
   return True
 
@@ -273,7 +273,7 @@ def ScalingSeriesB(mesh,sorted_face, particles0, measurements, pos_err, nor_err,
     # if visualize:
     #   Visualize(visualize_mesh,particles,measurements)
     sum_num_particles += len(particles)
-  new_set_of_particles = pruned_particles#EvenDensityCover(V,M)
+  new_set_of_particles = EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeightsB(mesh,sorted_face,new_set_of_particles,measurements,pos_err,nor_err,1)
   return new_set_of_particles, new_weights
 
@@ -313,7 +313,7 @@ def ScalingSeries(mesh,sorted_face, particles0, measurements, pos_err, nor_err, 
     V = Region(pruned_particles,delta_rot,delta_trans)
     # if visualize:
     #   Visualize(mesh,particles,measurements)
-  new_set_of_particles =  pruned_particles#EvenDensityCover(V,M)
+  new_set_of_particles =  EvenDensityCover(V,M)
   new_weights = ComputeNormalizedWeights(mesh,sorted_face,new_set_of_particles,measurements,pos_err,nor_err,1)
   return new_set_of_particles, new_weights
 
