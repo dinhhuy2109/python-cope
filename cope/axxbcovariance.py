@@ -72,8 +72,8 @@ def VisualizeCovariances(cov_rot, cov_trans, minx,maxx,miny,maxy):
   ellip2 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='red', linewidth=2, fill=False)
   ax.add_artist(ellip2)
   plt.axis([minx,maxx,miny,maxy])
-  plt.xlabel(r'${\bf{\xi}}_{\bf{t} x} (m)$',fontsize=20, labelpad=8)
-  plt.ylabel(r'${\bf{\xi}}_{\bf{t} y} (m)$',fontsize=20, labelpad=-8)
+  plt.xlabel(r'${\bf{\xi}}_{\bf{t} x} (mm)$',fontsize=20, labelpad=8)
+  plt.ylabel(r'${\bf{\xi}}_{\bf{t} y} (mm)$',fontsize=20, labelpad=-8)
   plt.xticks(np.arange(minx, maxx+maxx/2, (maxx-minx)/2))
   plt.yticks(np.arange(miny, maxy+maxy/2, (maxy-miny)/2))
   ax.set(aspect='equal')
@@ -111,8 +111,8 @@ def VisualizeCovariances(cov_rot, cov_trans, minx,maxx,miny,maxy):
   ellip2 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='red', linewidth=2, fill=False)
   ax.add_artist(ellip2)
   plt.axis([minx,maxx,miny,maxy])
-  plt.xlabel(r'${\bf{\xi}}_{\bf{t} y} (m)$',fontsize=20, labelpad=8)
-  plt.ylabel(r'${\bf{\xi}}_{\bf{t} z} (m)$',fontsize=20, labelpad=-8)
+  plt.xlabel(r'${\bf{\xi}}_{\bf{t} y} (mm)$',fontsize=20, labelpad=8)
+  plt.ylabel(r'${\bf{\xi}}_{\bf{t} z} (mm)$',fontsize=20, labelpad=-8)
   plt.xticks(np.arange(minx, maxx+maxx/2, (maxx-minx)/2))
   plt.yticks(np.arange(miny, maxy+maxy/2, (maxy-miny)/2))
   ax.set(aspect='equal')
@@ -155,8 +155,8 @@ def VisualizeCovariances(cov_rot, cov_trans, minx,maxx,miny,maxy):
   plt.axis([minx,maxx,miny,maxy])
   plt.xticks(np.arange(minx, maxx+maxx/2, (maxx-minx)/2))
   plt.yticks(np.arange(miny, maxy+maxy/2, (maxy-miny)/2))
-  plt.xlabel(r'${\bf{\xi}}_{\bf{t} x}(m)$',fontsize=20, labelpad=8)
-  plt.ylabel(r'${\bf{\xi}}_{\bf{t} z}(m)$',fontsize=20, labelpad=-8)
+  plt.xlabel(r'${\bf{\xi}}_{\bf{t} x}(mm)$',fontsize=20, labelpad=8)
+  plt.ylabel(r'${\bf{\xi}}_{\bf{t} z}(mm)$',fontsize=20, labelpad=-8)
   ax.set(aspect='equal')
   plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.8, hspace=None)
   # plt.legend(handles=[ellip1],loc='upper center',ncol=2, bbox_to_anchor=(0.5,1.5))
@@ -182,7 +182,7 @@ def VisualizeRealEstCov(cov_real, cov_est, minx,maxx,miny,maxy,param):
     theta = np.degrees(np.arctan2(*vecs[:,0][::-1]))
     # Width and height are "full" widths, not radius
     width, height = 2 * nstd * np.sqrt(vals)
-    ellip1 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='green',linewidth=2,linestyle='dashed', fill=False,label='Monte Carlo')
+    ellip1 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='green',linewidth=2,linestyle='dashed', fill=False,label='Empirical Estimation')
     ax.add_artist(ellip1)
     
     mean = (0,0)
@@ -207,8 +207,8 @@ def VisualizeRealEstCov(cov_real, cov_est, minx,maxx,miny,maxy,param):
         plt.xlabel(r'${\bf{\xi}}_{\bf{R} x} (rad)$',fontsize=20, labelpad=8)
         plt.ylabel(r'${\bf{\xi}}_{\bf{R} y} (rad)$',fontsize=20, labelpad=-8)
     if param=='trans':
-        plt.xlabel(r'${\bf{\xi}}_{\bf{t} x} (m)$',fontsize=20, labelpad=8)
-        plt.ylabel(r'${\bf{\xi}}_{\bf{t} y} (m)$',fontsize=20, labelpad=-8)
+        plt.xlabel(r'${\bf{\xi}}_{\bf{t} x} (mm)$',fontsize=20, labelpad=8)
+        plt.ylabel(r'${\bf{\xi}}_{\bf{t} y} (mm)$',fontsize=20, labelpad=-8)
     plt.xticks(np.arange(minx, maxx+maxx/2, (maxx-minx)/2))
     plt.yticks(np.arange(miny, maxy+maxy/2, (maxy-miny)/2))
     ax.set(aspect='equal')
@@ -224,7 +224,7 @@ def VisualizeRealEstCov(cov_real, cov_est, minx,maxx,miny,maxy,param):
     theta = np.degrees(np.arctan2(*vecs[:,0][::-1]))
     # Width and height are "full" widths, not radius
     width, height = 2 * nstd * np.sqrt(vals)
-    ellip1 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='green',linewidth=2,linestyle='dashed', fill=False,label='Monte Carlo')
+    ellip1 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='green',linewidth=2,linestyle='dashed', fill=False,label='Empirical Estimation')
     ax.add_artist(ellip1)
     
     mean = (0,0)
@@ -249,8 +249,8 @@ def VisualizeRealEstCov(cov_real, cov_est, minx,maxx,miny,maxy,param):
         plt.xlabel(r'${\bf{\xi}}_{\bf{R} y} (rad)$',fontsize=20, labelpad=8)
         plt.ylabel(r'${\bf{\xi}}_{\bf{R} z} (rad)$',fontsize=20, labelpad=-8)
     if param=='trans':
-        plt.xlabel(r'${\bf{\xi}}_{\bf{t} y} (m)$',fontsize=20, labelpad=8)
-        plt.ylabel(r'${\bf{\xi}}_{\bf{t} z} (m)$',fontsize=20, labelpad=-8)
+        plt.xlabel(r'${\bf{\xi}}_{\bf{t} y} (mm)$',fontsize=20, labelpad=8)
+        plt.ylabel(r'${\bf{\xi}}_{\bf{t} z} (mm)$',fontsize=20, labelpad=-8)
     # plt.legend(handles=[ellip1, ellip2])
     plt.xticks(np.arange(minx, maxx+maxx/2, (maxx-minx)/2))
     plt.yticks(np.arange(miny, maxy+maxy/2, (maxy-miny)/2))
@@ -270,7 +270,7 @@ def VisualizeRealEstCov(cov_real, cov_est, minx,maxx,miny,maxy,param):
     theta = np.degrees(np.arctan2(*vecs[:,0][::-1]))
     # Width and height are "full" widths, not radius
     width, height = 2 * nstd * np.sqrt(vals)
-    ellip1 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='green',linewidth=2,linestyle='dashed', fill=False,label='Monte Carlo')
+    ellip1 = Ellipse(xy=pos, width=width, height=height, angle=theta,alpha=0.5,color='green',linewidth=2,linestyle='dashed', fill=False,label='Empirical Estimation')
     ax.add_artist(ellip1)
 
     mean = (0,0)
@@ -297,8 +297,8 @@ def VisualizeRealEstCov(cov_real, cov_est, minx,maxx,miny,maxy,param):
         plt.xlabel(r'${\bf{\xi}}_{\bf{R} x} (rad)$',fontsize=20, labelpad=8)
         plt.ylabel(r'${\bf{\xi}}_{\bf{R} z} (rad)$',fontsize=20, labelpad=-8)
     if param=='trans':
-        plt.xlabel(r'${\bf{\xi}}_{\bf{t} x}(m)$',fontsize=20, labelpad=8)
-        plt.ylabel(r'${\bf{\xi}}_{\bf{t} z}(m)$',fontsize=20, labelpad=-8)
+        plt.xlabel(r'${\bf{\xi}}_{\bf{t} x}(mm)$',fontsize=20, labelpad=8)
+        plt.ylabel(r'${\bf{\xi}}_{\bf{t} z}(mm)$',fontsize=20, labelpad=-8)
     ax.set(aspect='equal')
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.8, hspace=None)
     # plt.show(True)
@@ -325,7 +325,7 @@ def FCParkSolution(alpha,beta,ta,tb):
     FCPark_tx = np.dot(np.linalg.pinv(C),g).reshape(3)
     return FCPark_Rx, FCPark_tx
 
-def IterativeSolutionTrans(beta, alpha, ta, tb, Rx, sigmaRa, sigmaRb, sigmata, sigmatb, sigmaRx,txinit=np.zeros((3,1)), max_iter =10):
+def IterativeSolutionTrans(beta, alpha, ta, tb, Rx, sigmaRa, sigmaRb, sigmata, sigmatb, sigmaRx,sigmaRbeta,txinit=np.zeros((3,1)), max_iter =10):
     tx = txinit
     i = 0
     delta_tx = np.ones((3,1))
@@ -338,14 +338,19 @@ def IterativeSolutionTrans(beta, alpha, ta, tb, Rx, sigmaRa, sigmaRb, sigmata, s
         Ra.append(SE3.VecToRot(alpha[k]))
         Rb.append(SE3.VecToRot(beta[k]))
         sigmaXk = np.zeros((6,6))
-        sigmaXk[:3,:3] = sigmaRa
+        sigmaXk[:3,:3] = sigmaRa[k]
         Rxtbk = np.dot(Rx,tb[k])
         sigmaXk[3:6,3:6] = sigmata + np.dot(np.dot(Rx,sigmatb),np.transpose(Rx)) + np.dot(np.dot(SE3.Hat(Rxtbk),sigmaRx),np.transpose(SE3.Hat(Rxtbk))) #sigmaqk
+        transposeJacalpha = np.transpose(SE3.VecToJac(alpha[k]))
+        sigmaRxRa = np.dot(np.dot(sigmaRx,np.transpose(SE3.Hat(np.dot(Rx,beta[k])))),transposeJacalpha )-np.dot(sigmaRbeta[k],np.dot(np.transpose(Rx),transposeJacalpha))
+        sigmaqRa= -np.dot(SE3.Hat(np.dot(Rx,ta[k])),sigmaRxRa)
+        sigmaXk[3:,:3] = sigmaqRa
+        sigmaXk[:3,3:] = np.transpose(sigmaqRa)
         inv_sigmaX.append(np.linalg.inv(sigmaXk))
     # import IPython; IPython.embed()
     Rahat = copy.copy(Ra)
     # main loop
-    while np.linalg.norm(delta_tx) > 1e-6 and i < max_iter:
+    while np.linalg.norm(delta_tx) > 1e-5 and i < max_iter:
         Ak = np.zeros((6,3))
         Bk = np.zeros((6,3))
         Bk[:3,:] = np.eye(3)
@@ -393,7 +398,7 @@ def IterativeSolutionTrans(beta, alpha, ta, tb, Rx, sigmaRa, sigmaRb, sigmata, s
     if i < max_iter:
       return tx, np.linalg.inv(U - sum1), i
     else:
-        return tx, np.linalg.inv(U - sum1), i # False
+        return tx, np.linalg.inv(U - sum1), False
 
 def IterativeSolutionRot(beta,alpha,sigmaRa,sigmaRb,Rxinit=np.eye(3),max_iter = 10):
     # Errors in A and B
@@ -422,6 +427,7 @@ def IterativeSolutionRot(beta,alpha,sigmaRa,sigmaRb,Rxinit=np.eye(3),max_iter = 
         W = []
         eB = []
         alphahat = []
+        Y  = []
         [alphahat.append(np.dot(Rhat,betak)) for betak in betahat]
         for k in range(len(alpha)):
             Ak[3:6,:] = -SE3.Hat(np.dot(Rhat,betahat[k]))
@@ -432,6 +438,7 @@ def IterativeSolutionRot(beta,alpha,sigmaRa,sigmaRb,Rxinit=np.eye(3),max_iter = 
             V.append(Vk)
             W.append(Wk)
             Yk = np.dot(Wk,np.linalg.inv(Vk))
+            Y.append(Yk)
             Xk = np.zeros((6,1))
             Xk[:3] = beta[k].reshape(3,1)
             Xk[3:6] = alpha[k].reshape(3,1)
@@ -451,6 +458,20 @@ def IterativeSolutionRot(beta,alpha,sigmaRa,sigmaRb,Rxinit=np.eye(3),max_iter = 
             betahat[k] = betahat[k] + deltaBk.reshape(3)
         i +=1
     if i < max_iter:
-        return Rhat, np.linalg.inv(U - sum1), i
+        # import IPython; IPython.embed()
+        alphahat = []
+        [alphahat.append(np.dot(Rhat,betak)) for betak in betahat]
+        sigmaRx = np.linalg.inv(U - sum1)
+        sigmaRbeta = [-np.dot(sigmaRx,Yn) for Yn in Y]
+        sigmabeta = [np.dot(np.dot(np.transpose(Y[n]),sigmaRx),Y[n])+np.linalg.inv(V[n]) for n in range(len(alpha))]
+        sigmanewRa = []
+        sigmaRRa = []
+        for n in range(len(alphahat)):
+            Jacalpha = SE3.VecToJac(alphahat[n])
+            JachatRbeta = -np.dot(Jacalpha,SE3.Hat(np.dot(Rhat,betahat[n])))
+            JacR = np.dot(Jacalpha,Rhat)
+            sigmanewRa.append(np.dot(JachatRbeta,np.dot(sigmaRx,np.transpose(JachatRbeta)))+np.dot(JacR,np.dot(sigmabeta[n],np.transpose(JacR)))+np.dot(JacR,np.dot(np.transpose(sigmaRbeta[n]),np.transpose(JachatRbeta)))+np.dot(JachatRbeta,np.dot(sigmaRbeta[n],np.transpose(JacR))))
+            sigmaRRa.append(np.dot(sigmaRbeta[n],np.transpose(JacR))+np.dot(sigmaRx,np.transpose(JachatRbeta)))
+        return Rhat, sigmaRx,i,betahat,alphahat,sigmaRbeta,sigmabeta,sigmanewRa,sigmaRRa
     else:
-        return Rhat, np.linalg.inv(U - sum1), i
+        return Rhat, np.linalg.inv(U - sum1), False,beta,alpha,None,None,None,None

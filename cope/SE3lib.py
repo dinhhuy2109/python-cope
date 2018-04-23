@@ -468,7 +468,7 @@ def VecToTranSeries(p, N):
     T = T + xM
   return T
 
-  
+
 def Propagating(T1, sigma1, T2, sigma2, method = 2):
   """
   Find the total uncertainty in a compound spatial relation (Compounding two uncertain transformations)
@@ -587,7 +587,15 @@ def Fusing(Tlist, sigmalist, N = 0, maxiterations=30, retiter=False):
     return T, sigma, i+1
   else:
     return T, sigma
- 
+
+def CovInverseTran(T,sigma):
+    """
+    Compute the cov of the inverse transformation. (Follow Ethan Eade's note on lie group.)
+    """
+    Tinv = np.linalg.inv(T)
+    AdTinv = TranAd(Tinv)
+    sigmaTinv = np.dot(np.dot(AdTinv,sigma),np.transpose(AdTinv))
+    return Tinv, sigmaTinv
      
 def Visualize(Tlist,sigmalist, nsamples = 100):
   """
