@@ -653,3 +653,42 @@ def IsInside(point, center, sigma):
     return True
   else:
     return False
+
+class Pose():
+  # SE3 pose where Rot and Trans are separated.
+  def __init__(self,rot, sigmarot, trans,sigmatrans):
+    self.rot = rot
+    self.trans = trans
+    self.sigmarot = sigmarot
+    self.sigmatrans = sigmatrans
+    self.transform = np.eye(4)
+    self.transform[:3,:3] = rot
+    self.transform[:3,3] = trans
+
+  # def transform(self):
+  #   transform = np.eye(4)
+  #   transform[:3,:3] = self.rot
+  #   transform[:3,3] = self.trans
+  #   return transform
+
+def ConstPose(T):
+  '''
+  Return a pose obj w no covariance matrix. input: a 4x4 matrix
+  '''
+  sigmarot = np.zeros((3,3))
+  sigmatrans = np.zeros((3,3))
+  return Pose(T[:3,:3], sigmarot, T[:3,3],sigmatrans)
+    
+def Dot(pose1,pose2):
+  '''Find the total uncertainty in a compound spatial relation (Compounding two uncertain transformations) where we separate rotation and translation.
+  output: a pose Pose(R, sigmaR, t, sigmat)
+  '''
+  R, sigmaR, t, sigmat = PropagatingWithSeparateRotTrans(pose1.rot,pose1.sigmarot,pose1.trans,pose1.sigmatrans,pose2.rot,pose2.sigmarot,pose2.trans,pose2.sigmatrans)
+  return Pose(R, sigmaR, t, sigmat)
+
+def Inverse(pose):
+  '''
+  Return the inverse and cov of the the inverse transformation
+  '''
+  R, sigmaR, t, sigmat = CovInverseTranWithSeparateRotTrans(pose.rot,pose.sigmarot,pose.trans,pose.sigmatrans)
+  return Pose(R, sigmaR, t, sigmat)
