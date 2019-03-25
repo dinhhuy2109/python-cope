@@ -678,11 +678,18 @@ def ConstPose(T):
   sigmarot = np.zeros((3,3))
   sigmatrans = np.zeros((3,3))
   return Pose(T[:3,:3], sigmarot, T[:3,3],sigmatrans)
-    
+
+def UpdatePose(pose):
+  pose.rot = pose.transform[:3,:3]
+  pose.trans = pose.transform[:3,3]
+  return True
+
 def Dot(pose1,pose2):
   '''Find the total uncertainty in a compound spatial relation (Compounding two uncertain transformations) where we separate rotation and translation.
   output: a pose Pose(R, sigmaR, t, sigmat)
   '''
+  UpdatePose(pose1)
+  UpdatePose(pose2)
   R, sigmaR, t, sigmat = PropagatingWithSeparateRotTrans(pose1.rot,pose1.sigmarot,pose1.trans,pose1.sigmatrans,pose2.rot,pose2.sigmarot,pose2.trans,pose2.sigmatrans)
   return Pose(R, sigmaR, t, sigmat)
 
@@ -690,5 +697,6 @@ def Inverse(pose):
   '''
   Return the inverse and cov of the the inverse transformation
   '''
+  UpdatePose(pose)
   R, sigmaR, t, sigmat = CovInverseTranWithSeparateRotTrans(pose.rot,pose.sigmarot,pose.trans,pose.sigmatrans)
   return Pose(R, sigmaR, t, sigmat)

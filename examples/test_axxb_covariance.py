@@ -52,8 +52,9 @@ for n in range(iters):
         tb.append(B[:3,3])
     Rxinit,txinit = axxb.FCParkSolution(alpha,beta,ta,tb)
     
-    Rxhat, sigmaRx, rot_converged = axxb.IterativeSolutionRot(beta,alpha,sigmaRa,sigmaRb,Rxinit)
-    txhat, sigmatx, trans_converged = axxb.IterativeSolutionTrans(beta, alpha, ta, tb, Rxhat, sigmaRa, sigmaRb, sigmata, sigmatb, sigmaRx, txinit.reshape((3,1)), 10)
+    rot_res = axxb.IterativeSolutionRot(beta,alpha,sigmaRa,sigmaRb,Rxinit)
+    Rxhat, sigmaRx, rot_converged, betahat, alphahat, sigmaRbeta, sigmabeta, sigmaRahat, sigmaRRa = rot_res
+    txhat, sigmatx, trans_converged = axxb.IterativeSolutionTrans(betahat, alphahat, ta, tb, Rxhat, sigmaRahat, sigmaRb, sigmata, sigmatb, sigmaRx,sigmaRbeta, txinit.reshape((3,1)), 10)
     if rot_converged and trans_converged:
         Rxlist.append(Rxhat)
         sigmaRx_list.append(sigmaRx)
