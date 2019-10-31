@@ -1,3 +1,3 @@
-from particlelib import *
-from SE3lib import *
-from axxbcovariance import *
+from cope.particlelib import *
+from cope.SE3lib import *
+from cope.axxbcovariance import *

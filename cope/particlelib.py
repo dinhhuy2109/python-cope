@@ -24,7 +24,7 @@ import scipy as sp
 from scipy.stats import norm
 import cope.SE3lib as SE3
 import bisect
-import transformation as tr
+import cope.transformation as tr
 import random
 import time
 import copy
@@ -394,8 +394,8 @@ def NormalHashing(obj,num_random_unit,plot_histogram):
       entropy = sp.stats.entropy(normalized_hist)
       sorted_dict = [sorted(mesh,key=lambda f: f[1]),ref_axis]
       toshow = normalized_hist,bin_edges
-  print 'Selected unit vec:',sorted_dict[1]
-  print 'Entropy:', entropy
+  # print 'Selected unit vec:',sorted_dict[1]
+  # print 'Entropy:', entropy
 
   if plot_histogram:
     fig = plt.figure()
@@ -475,7 +475,7 @@ def ScoreHypothesis(hypothesis,measurements,pos_err,nor_err,mesh,sorted_face):
 
 def SelectRandomSubset(measurements,size,dist_angle_th):
   if size <= 1:
-    print 'Too few!'
+    # print 'Too few!'
     quit()
   all_idx = range(num_measurements)
   subset_idx = []
@@ -489,7 +489,7 @@ def SelectRandomSubset(measurements,size,dist_angle_th):
     if len(too_close) < 0.5*size: 
       subset_idx.append(i)
     all_idx.remove(i)
-  print subset_idx
+  # print subset_idx
   return subset_idx
 
 def RansacParticle(n,k,threshold,d,mesh,sorted_face, ptcls0, measurements, pos_err, nor_err, M, sigma0, sigma_desired, prune_percentage,dim = 6, visualize = False):

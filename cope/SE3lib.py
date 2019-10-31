@@ -571,9 +571,9 @@ def Fusing(Tlist, sigmalist, N = 0, maxiterations=30, retiter=False):
       LHS = LHS + np.dot(invJtS,invJ)
       RHS = RHS + np.dot(invJtS, xik)
     xi = -np.linalg.solve(LHS,RHS)
-    print "xi", xi
+    # print "xi", xi
     T = np.dot(VecToTran(xi),T)
-    print "T", T
+    # print "T", T
     sigma = np.linalg.inv(LHS)
     # How low did the objective function get?
     V = 0.
